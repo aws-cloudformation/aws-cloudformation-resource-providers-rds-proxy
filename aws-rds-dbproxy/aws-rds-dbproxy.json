@@ -166,7 +166,7 @@
     },
     "list": {
       "permissions": [
-        "rds:DescribeDBProxy"
+        "rds:DescribeDBProxies"
       ]
     }
   }

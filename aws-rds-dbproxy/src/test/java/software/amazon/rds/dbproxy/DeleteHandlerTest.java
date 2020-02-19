@@ -71,6 +71,39 @@ public class DeleteHandlerTest {
     }
 
     @Test
+    public void handleRequest_alreadyDeletedTest() {
+        doThrow(new DBProxyNotFoundException("")).when(proxy).injectCredentialsAndInvoke(any(DeleteDBProxyRequest.class), any());
+
+        final DeleteHandler handler = new DeleteHandler();
+
+        final ResourceModel model = ResourceModel.builder().build();
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                                                                      .desiredResourceState(model)
+                                                                      .build();
+
+        final CallbackContext context = CallbackContext.builder()
+                                                       .stabilizationRetriesRemaining(1)
+                                                       .build();
+
+        final ProgressEvent<ResourceModel, CallbackContext> response
+                = handler.handleRequest(proxy, request, context, logger);
+
+        final CallbackContext desiredOutputContext = CallbackContext.builder()
+                                                                    .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
+                                                                    .proxy(new DBProxy())
+                                                                    .build();
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
+        assertThat(response.getCallbackContext()).isEqualToComparingFieldByField(desiredOutputContext);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModel()).isEqualTo(request.getDesiredResourceState());
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+    }
+
+    @Test
     public void handleRequest_deleteTest() {
         DBProxy dbProxy = new DBProxy().withStatus("deleting");
         doReturn(new DeleteDBProxyResult().withDBProxy(dbProxy)).when(proxy).injectCredentialsAndInvoke(any(DeleteDBProxyRequest.class), any());
@@ -91,7 +124,7 @@ public class DeleteHandlerTest {
                 = handler.handleRequest(proxy, request, context, logger);
 
         final CallbackContext desiredOutputContext = CallbackContext.builder()
-                                                                    .stabilizationRetriesRemaining(60)
+                                                                    .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
                                                                     .proxy(dbProxy)
                                                                     .build();
         assertThat(response).isNotNull();

@@ -12,16 +12,15 @@ import com.amazonaws.services.rds.model.DescribeDBProxiesRequest;
 import com.amazonaws.services.rds.model.DescribeDBProxiesResult;
 import com.amazonaws.services.rds.model.Tag;
 import com.amazonaws.services.rds.model.UserAuthConfig;
+import com.google.common.collect.ImmutableList;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 
 public class CreateHandler extends BaseHandler<CallbackContext> {
-    private static final String AVAILABLE_PROXY_STATE = "available";
-    private static final int NUMBER_OF_STATE_POLL_RETRIES = 60;
-    private static final int POLL_RETRY_DELAY_IN_MS = 5000;
     public static final String TIMED_OUT_MESSAGE = "Timed out waiting for proxy to become available.";
 
     private AmazonWebServicesClientProxy clientProxy;
@@ -40,7 +39,7 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
         rdsClient = AmazonRDSClientBuilder.defaultClient();
 
         final CallbackContext currentContext = callbackContext == null ?
-                                               CallbackContext.builder().stabilizationRetriesRemaining(NUMBER_OF_STATE_POLL_RETRIES).build() :
+                                               CallbackContext.builder().stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES).build() :
                                                callbackContext;
 
         // This Lambda will continually be re-invoked with the current state of the proxy, finally succeeding when state stabilizes.
@@ -62,10 +61,10 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
                            .status(OperationStatus.IN_PROGRESS)
                            .callbackContext(CallbackContext.builder()
                                                            .proxy(createProxy(model))
-                                                           .stabilizationRetriesRemaining(NUMBER_OF_STATE_POLL_RETRIES)
+                                                           .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
                                                            .build())
                            .build();
-        } else if (proxyStateSoFar.getStatus().equals(AVAILABLE_PROXY_STATE)) {
+        } else if (proxyStateSoFar.getStatus().equals(Constants.AVAILABLE_PROXY_STATE)) {
             model.setDbProxyArn(proxyStateSoFar.getDBProxyArn());
             model.setEndpoint(proxyStateSoFar.getEndpoint());
 
@@ -73,12 +72,17 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
                            .resourceModel(model)
                            .status(OperationStatus.SUCCESS)
                            .build();
+        } else if (Constants.TERMINAL_FAILURE_STATES.contains(proxyStateSoFar.getStatus())) {
+            return ProgressEvent.<ResourceModel, CallbackContext>builder()
+                           .status(OperationStatus.FAILED)
+                           .errorCode(HandlerErrorCode.NotFound)
+                           .build();
         } else {
             model.setDbProxyArn(proxyStateSoFar.getDBProxyArn());
             model.setEndpoint(proxyStateSoFar.getEndpoint());
 
             try {
-                Thread.sleep(POLL_RETRY_DELAY_IN_MS);
+                Thread.sleep(Constants.POLL_RETRY_DELAY_IN_MS);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }

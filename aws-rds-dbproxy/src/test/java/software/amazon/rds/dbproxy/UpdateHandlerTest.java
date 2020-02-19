@@ -85,7 +85,7 @@ public class UpdateHandlerTest {
                                                                       .build();
 
         final CallbackContext desiredOutputContext = CallbackContext.builder()
-                                                                    .stabilizationRetriesRemaining(60)
+                                                                    .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
                                                                     .proxy(dbProxy)
                                                                     .build();
 

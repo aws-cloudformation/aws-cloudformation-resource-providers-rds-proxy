@@ -27,7 +27,6 @@ Resources:
                 - "rds:CreateDBProxy"
                 - "rds:DeleteDBProxy"
                 - "rds:DescribeDBProxies"
-                - "rds:DescribeDBProxy"
                 - "rds:ModifyDBProxy"
                 Resource: "*"
 Outputs:

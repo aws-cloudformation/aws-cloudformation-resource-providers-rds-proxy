@@ -17,6 +17,7 @@ import com.amazonaws.services.rds.model.DBProxy;
 import com.amazonaws.services.rds.model.DescribeDBProxiesRequest;
 import com.amazonaws.services.rds.model.DescribeDBProxiesResult;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -58,7 +59,7 @@ public class CreateHandlerTest {
                 = handler.handleRequest(proxy, request, context, logger);
 
         final CallbackContext desiredOutputContext = CallbackContext.builder()
-                                                                    .stabilizationRetriesRemaining(60)
+                                                                    .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
                                                                     .proxy(dbProxy)
                                                                     .build();
         assertThat(response).isNotNull();
@@ -129,6 +130,33 @@ public class CreateHandlerTest {
         assertThat(response.getResourceModels()).isNull();
         assertThat(response.getMessage()).isNull();
         assertThat(response.getErrorCode()).isNull();
+    }
+    @Test
+    public void handleRequest_terminalState() {
+        final CreateHandler handler = new CreateHandler();
+
+        final ResourceModel model = ResourceModel.builder().build();
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                                                                      .desiredResourceState(model)
+                                                                      .build();
+
+        final CallbackContext context = CallbackContext.builder()
+                                                       .stabilizationRetriesRemaining(60)
+                                                       .proxy(new DBProxy().withStatus("incompatible-network"))
+                                                       .build();
+
+        final ProgressEvent<ResourceModel, CallbackContext> response
+                = handler.handleRequest(proxy, request, context, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
+        assertThat(response.getCallbackContext()).isNull();
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModel()).isNull();
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.NotFound);
     }
 
     @Test

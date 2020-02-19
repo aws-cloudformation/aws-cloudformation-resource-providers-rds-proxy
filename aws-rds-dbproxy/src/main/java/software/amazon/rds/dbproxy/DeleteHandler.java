@@ -14,8 +14,6 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 
 public class DeleteHandler extends BaseHandler<CallbackContext> {
-    private static final int NUMBER_OF_STATE_POLL_RETRIES = 60;
-    private static final int POLL_RETRY_DELAY_IN_MS = 5000;
     private static final String TIMED_OUT_MESSAGE = "Timed out waiting for proxy to terminate.";
 
     private AmazonWebServicesClientProxy clientProxy;
@@ -34,7 +32,7 @@ public class DeleteHandler extends BaseHandler<CallbackContext> {
         rdsClient = AmazonRDSClientBuilder.defaultClient();
 
         final CallbackContext currentContext = callbackContext == null ?
-                                               CallbackContext.builder().stabilizationRetriesRemaining(NUMBER_OF_STATE_POLL_RETRIES).build() :
+                                               CallbackContext.builder().stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES).build() :
                                                callbackContext;
 
         // This Lambda will continually be re-invoked with the current state of the proxy, finally succeeding when deleted.
@@ -53,7 +51,7 @@ public class DeleteHandler extends BaseHandler<CallbackContext> {
                            .status(OperationStatus.IN_PROGRESS)
                            .callbackContext(CallbackContext.builder()
                                                            .proxy(deleteProxy(model.getDbProxyName()))
-                                                           .stabilizationRetriesRemaining(NUMBER_OF_STATE_POLL_RETRIES)
+                                                           .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
                                                            .build())
                            .build();
         } else if (callbackContext.isDeleted()) {
@@ -63,7 +61,7 @@ public class DeleteHandler extends BaseHandler<CallbackContext> {
                            .build();
         } else {
             try {
-                Thread.sleep(POLL_RETRY_DELAY_IN_MS);
+                Thread.sleep(Constants.POLL_RETRY_DELAY_IN_MS);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
@@ -82,11 +80,16 @@ public class DeleteHandler extends BaseHandler<CallbackContext> {
     private DBProxy deleteProxy(String proxyName) {
         DeleteDBProxyRequest request = new DeleteDBProxyRequest().withDBProxyName(proxyName);
 
-        DeleteDBProxyResult result = clientProxy.injectCredentialsAndInvoke(request, rdsClient::deleteDBProxy);
-        if (result != null) {
-            return result.getDBProxy();
-        } else {
-            return null;
+        DeleteDBProxyResult result;
+        try {
+            result = clientProxy.injectCredentialsAndInvoke(request, rdsClient::deleteDBProxy);
+            if (result != null) {
+                return result.getDBProxy();
+            } else {
+                return null;
+            }
+        } catch (DBProxyNotFoundException e) {
+            return new DBProxy().withDBProxyName(proxyName);
         }
     }
 

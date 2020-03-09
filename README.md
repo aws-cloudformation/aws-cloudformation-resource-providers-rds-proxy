@@ -1,6 +1,6 @@
 ## aws-cloudformation-resource-providers
 
-CloudFormation Resource Provider Package
+CloudFormation Resource Provider Package for RDS Proxy
 
 ## License
 

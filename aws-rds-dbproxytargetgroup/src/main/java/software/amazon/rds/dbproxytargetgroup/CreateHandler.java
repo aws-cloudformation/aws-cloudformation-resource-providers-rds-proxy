@@ -2,6 +2,7 @@ package software.amazon.rds.dbproxytargetgroup;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import com.amazonaws.services.rds.AmazonRDS;
 import com.amazonaws.services.rds.AmazonRDSClientBuilder;
@@ -21,11 +22,10 @@ import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 
 public class CreateHandler extends BaseHandler<CallbackContext> {
-    public  static final String TIMED_OUT_MESSAGE = "Timed out waiting for target group to become available.";
+    public static final String TIMED_OUT_MESSAGE = "Timed out waiting for target group to become available.";
 
     private AmazonWebServicesClientProxy clientProxy;
     private AmazonRDS rdsClient;
-    private Logger log;
 
     @Override
     public ProgressEvent<ResourceModel, CallbackContext> handleRequest(
@@ -33,16 +33,15 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
             final ResourceHandlerRequest<ResourceModel> request,
             final CallbackContext callbackContext,
             final Logger logger) {
-
-        log = logger;
         final ResourceModel model = request.getDesiredResourceState();
 
         clientProxy = proxy;
         rdsClient = AmazonRDSClientBuilder.defaultClient();
 
-        final CallbackContext currentContext = callbackContext == null ?
-                                               CallbackContext.builder().stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES).build() :
-                                               callbackContext;
+        final CallbackContext currentContext = Optional.ofNullable(callbackContext)
+                                                       .orElse(CallbackContext.builder()
+                                                                              .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
+                                                                              .build());
 
         // This Lambda will continually be re-invoked with the current state of the proxy, finally succeeding when state stabilizes.
         return createTargetGroupAndUpdateProgress(model, currentContext);

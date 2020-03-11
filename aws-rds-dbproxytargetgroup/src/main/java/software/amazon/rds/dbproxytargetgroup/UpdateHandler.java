@@ -123,7 +123,7 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
 
         ModifyDBProxyTargetGroupRequest request = new ModifyDBProxyTargetGroupRequest()
                                                           .withDBProxyName(newModel.getDbProxyName())
-                                                          .withTargetGroupName("default")
+                                                          .withTargetGroupName(newModel.getTargetGroupName())
                                                           .withConnectionPoolConfig(connectionPoolConfiguration);
 
         return clientProxy.injectCredentialsAndInvoke(request, rdsClient::modifyDBProxyTargetGroup).getDBProxyTargetGroup();
@@ -132,11 +132,11 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
     private List<DBProxyTarget> registerNewTargets(ResourceModel oldModel, ResourceModel newModel) {
         List<String> oldClusters = Utility.getClusters(oldModel);
         List<String> newClusters = Utility.getClusters(newModel);
-        List<String> clustersToAdd =  Utility.listDifference(newClusters, oldClusters);
+        List<String> clustersToAdd =  listNewObjects(newClusters, oldClusters);
 
         List<String> oldInstances = Utility.getInstances(oldModel);
         List<String> newInstances = Utility.getInstances(newModel);
-        List<String> instancesToAdd =  Utility.listDifference(newInstances, oldInstances);
+        List<String> instancesToAdd =  listNewObjects(newInstances, oldInstances);
 
         if (clustersToAdd.size() == 0 && instancesToAdd.size() == 0) {
             return new ArrayList<>();
@@ -153,13 +153,13 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
     private boolean deregisterOldTargets(ResourceModel oldModel, ResourceModel newModel) {
         List<String> oldClusters = Utility.getClusters(oldModel);
         List<String> newClusters = Utility.getClusters(newModel);
-        List<String> clustersToRemove =  Utility.listDifference(oldClusters, newClusters);
+        List<String> clustersToRemove =  listNewObjects(oldClusters, newClusters);
 
         List<String> oldInstances = Utility.getInstances(oldModel);
         List<String> newInstances = Utility.getInstances(newModel);
-        List<String> instancesToRemove =  Utility.listDifference(oldInstances, newInstances);
+        List<String> instancesToRemove =  listNewObjects(oldInstances, newInstances);
 
-        if (clustersToRemove.size() ==0 && instancesToRemove.size() == 0) {
+        if (clustersToRemove.size() == 0 && instancesToRemove.size() == 0) {
             return true;
         }
 
@@ -171,5 +171,12 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
 
         clientProxy.injectCredentialsAndInvoke(deregisterRequest, rdsClient::deregisterDBProxyTargets);
         return true;
+    }
+
+    private List<String> listNewObjects(List<String> list1, List<String> list2) {
+        if (list1.size() > 0 && list2.size() > 0) {
+            list1.removeAll(list2);
+        }
+        return list1;
     }
 }

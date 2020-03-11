@@ -6,6 +6,7 @@ import java.util.Optional;
 import com.amazonaws.services.rds.AmazonRDS;
 import com.amazonaws.services.rds.AmazonRDSClientBuilder;
 import com.amazonaws.services.rds.model.DeregisterDBProxyTargetsRequest;
+import com.amazonaws.services.rds.model.DescribeDBProxyTargetGroupsRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.OperationStatus;

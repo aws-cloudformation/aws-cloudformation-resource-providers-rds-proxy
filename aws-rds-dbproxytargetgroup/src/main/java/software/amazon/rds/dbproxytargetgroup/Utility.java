@@ -12,11 +12,6 @@ import com.amazonaws.services.rds.model.ConnectionPoolConfigurationInfo;
 import com.amazonaws.services.rds.model.DBProxyTargetGroup;
 
 public class Utility {
-    static <A, B> List<B> map(Collection<A> xs, Function<A, B> f) {
-        return Optional.ofNullable(xs).orElse(Collections.emptyList()).stream().map(f)
-                       .collect(Collectors.toList());
-    }
-
     public static ResourceModel resultToModel(DBProxyTargetGroup targetGroup){
             return ResourceModel
                    .builder()
@@ -38,25 +33,10 @@ public class Utility {
     }
 
     static List<String> getClusters(ResourceModel model) {
-        if (model.getClusterIdentifiers() != null && model.getClusterIdentifiers().size() > 0) {
-            return model.getClusterIdentifiers();
-        }
-        return new ArrayList<>();
+        return Optional.ofNullable(model.getClusterIdentifiers()).orElse(new ArrayList<>());
     }
 
     static List<String> getInstances(ResourceModel model) {
-        if (model.getInstanceIdentifiers() != null && model.getInstanceIdentifiers().size() > 0) {
-            return model.getInstanceIdentifiers();
-        }
-        return new ArrayList<>();
+        return Optional.ofNullable(model.getInstanceIdentifiers()).orElse(new ArrayList<>());
     }
-
-    static List<String> listDifference(List<String> list1, List<String> list2) {
-        if (list1.size() > 0 && list2.size() > 0) {
-            list1.removeAll(list2);
-        }
-        return list1;
-    }
-
-
 }

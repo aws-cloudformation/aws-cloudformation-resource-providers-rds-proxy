@@ -1,5 +1,7 @@
 package software.amazon.rds.dbproxytargetgroup;
 
+import java.util.Optional;
+
 import com.amazonaws.services.rds.AmazonRDS;
 import com.amazonaws.services.rds.AmazonRDSClientBuilder;
 import com.amazonaws.services.rds.model.DescribeDBProxyTargetGroupsRequest;
@@ -25,7 +27,7 @@ public class ReadHandler extends BaseHandler<CallbackContext> {
         final ResourceModel desiredResource = request.getDesiredResourceState();
 
         String proxyName = desiredResource.getDbProxyName();
-        String targetGroupName = desiredResource.getTargetGroupName() == null ? "default" : desiredResource.getTargetGroupName();
+        String targetGroupName = Optional.ofNullable(desiredResource.getTargetGroupName()).orElse("default");
 
         clientProxy = proxy;
         rdsClient = AmazonRDSClientBuilder.defaultClient();

@@ -1,0 +1,15 @@
+{
+    "typeName": "AWS::RDS::DBProxyTargetGroup",
+    "language": "java",
+    "runtime": "java8",
+    "entrypoint": "software.amazon.rds.dbproxytargetgroup.HandlerWrapper::handleRequest",
+    "testEntrypoint": "software.amazon.rds.dbproxytargetgroup.HandlerWrapper::testEntrypoint",
+    "settings": {
+        "namespace": [
+            "software",
+            "amazon",
+            "rds",
+            "dbproxytargetgroup"
+        ]
+    }
+}

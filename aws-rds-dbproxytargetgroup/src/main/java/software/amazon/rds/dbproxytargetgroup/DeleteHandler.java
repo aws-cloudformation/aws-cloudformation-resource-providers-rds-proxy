@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import com.amazonaws.services.rds.AmazonRDS;
 import com.amazonaws.services.rds.AmazonRDSClientBuilder;
+import com.amazonaws.services.rds.model.AmazonRDSException;
 import com.amazonaws.services.rds.model.DeregisterDBProxyTargetsRequest;
 import com.amazonaws.services.rds.model.DescribeDBProxyTargetGroupsRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -17,6 +18,7 @@ public class DeleteHandler extends BaseHandler<CallbackContext> {
 
     private AmazonWebServicesClientProxy clientProxy;
     private AmazonRDS rdsClient;
+    private Logger logger;
 
     @Override
     public ProgressEvent<ResourceModel, CallbackContext> handleRequest(
@@ -29,6 +31,7 @@ public class DeleteHandler extends BaseHandler<CallbackContext> {
 
         clientProxy = proxy;
         rdsClient = AmazonRDSClientBuilder.defaultClient();
+        this.logger = logger;
 
         final CallbackContext currentContext = Optional.ofNullable(callbackContext)
                                                        .orElse(CallbackContext.builder()
@@ -72,7 +75,11 @@ public class DeleteHandler extends BaseHandler<CallbackContext> {
                                                                     .withDBClusterIdentifiers(oldClusters)
                                                                     .withDBInstanceIdentifiers(oldInstances);
 
-        clientProxy.injectCredentialsAndInvoke(deregisterRequest, rdsClient::deregisterDBProxyTargets);
+        try {
+            clientProxy.injectCredentialsAndInvoke(deregisterRequest, rdsClient::deregisterDBProxyTargets);
+        } catch (AmazonRDSException e) {
+            logger.log("Caught exception when deregistering, proceeding anyway");
+        }
         return true;
     }
 }

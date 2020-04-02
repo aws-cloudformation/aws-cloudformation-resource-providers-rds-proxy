@@ -1,13 +1,17 @@
 package software.amazon.rds.dbproxytargetgroup;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import com.amazonaws.services.rds.AmazonRDS;
 import com.amazonaws.services.rds.AmazonRDSClientBuilder;
 import com.amazonaws.services.rds.model.AmazonRDSException;
+import com.amazonaws.services.rds.model.DBProxyTarget;
 import com.amazonaws.services.rds.model.DeregisterDBProxyTargetsRequest;
 import com.amazonaws.services.rds.model.DescribeDBProxyTargetGroupsRequest;
+import com.amazonaws.services.rds.model.DescribeDBProxyTargetsRequest;
+import com.amazonaws.services.rds.model.DescribeDBProxyTargetsResult;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.OperationStatus;
@@ -63,23 +67,34 @@ public class DeleteHandler extends BaseHandler<CallbackContext> {
     }
 
     private boolean deregisterOldTargets(ResourceModel model) {
-        List<String> oldClusters = Utility.getClusters(model);
-        List<String> oldInstances = Utility.getInstances(model);
+        DescribeDBProxyTargetsRequest describeDBProxyTargetsRequest = new DescribeDBProxyTargetsRequest()
+                                                                              .withDBProxyName(model.getDbProxyName())
+                                                                              .withTargetGroupName(model.getTargetGroupName());
 
-        if (oldClusters.size() ==0 && oldInstances.size() == 0) {
-            return true;
+        DescribeDBProxyTargetsResult describeResult = clientProxy.injectCredentialsAndInvoke(describeDBProxyTargetsRequest, rdsClient::describeDBProxyTargets);
+
+        List<String> dbClusters = new ArrayList<>();
+        List<String> dbInstances = new ArrayList<>();
+        for (DBProxyTarget target: describeResult.getTargets()) {
+            if (target.getType().equals("TRACKED_CLUSTER")) {
+                dbClusters.add(target.getRdsResourceId());
+            } else {
+                dbInstances.add(target.getRdsResourceId());
+            }
         }
 
-        DeregisterDBProxyTargetsRequest deregisterRequest = new DeregisterDBProxyTargetsRequest()
-                                                                    .withDBProxyName(model.getDbProxyName())
-                                                                    .withDBClusterIdentifiers(oldClusters)
-                                                                    .withDBInstanceIdentifiers(oldInstances);
-
-        try {
+        if (dbClusters.size() > 0) {
+            DeregisterDBProxyTargetsRequest deregisterRequest = new DeregisterDBProxyTargetsRequest()
+                                                                        .withDBProxyName(model.getDbProxyName())
+                                                                        .withDBClusterIdentifiers(dbClusters);
             clientProxy.injectCredentialsAndInvoke(deregisterRequest, rdsClient::deregisterDBProxyTargets);
-        } catch (AmazonRDSException e) {
-            logger.log("Caught exception when deregistering, proceeding anyway");
+        } else if (dbInstances.size() > 0){
+            DeregisterDBProxyTargetsRequest deregisterRequest = new DeregisterDBProxyTargetsRequest()
+                                                                        .withDBProxyName(model.getDbProxyName())
+                                                                        .withDBInstanceIdentifiers(dbInstances);
+            clientProxy.injectCredentialsAndInvoke(deregisterRequest, rdsClient::deregisterDBProxyTargets);
         }
+
         return true;
     }
 }

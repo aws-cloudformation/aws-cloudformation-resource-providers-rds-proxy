@@ -1,25 +1,31 @@
 package software.amazon.rds.dbproxytargetgroup;
 
-import com.amazonaws.services.rds.model.AmazonRDSException;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
+import java.util.ArrayList;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import com.amazonaws.services.rds.model.DBProxyTarget;
 import com.amazonaws.services.rds.model.DeregisterDBProxyTargetsRequest;
+import com.amazonaws.services.rds.model.DescribeDBProxyTargetsRequest;
+import com.amazonaws.services.rds.model.DescribeDBProxyTargetsResult;
 import com.google.common.collect.ImmutableList;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-
-import java.util.ArrayList;
 
 @ExtendWith(MockitoExtension.class)
 public class DeleteHandlerTest {
@@ -66,6 +72,9 @@ public class DeleteHandlerTest {
 
     @Test
     public void handleRequest_DeregisterEmpty() {
+        DescribeDBProxyTargetsResult emptyResult = new DescribeDBProxyTargetsResult();
+        doReturn(emptyResult).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class), any());
+
         final DeleteHandler handler = new DeleteHandler();
 
         final ResourceModel model = ResourceModel.builder().build();
@@ -96,7 +105,13 @@ public class DeleteHandlerTest {
     }
 
     @Test
-    public void handleRequest_Deregister() {
+    public void handleRequest_DeregisterInstance() {
+        String instanceId= "instanceID";
+        DescribeDBProxyTargetsResult describeResult = new DescribeDBProxyTargetsResult()
+                                                              .withTargets(new DBProxyTarget()
+                                                                                   .withRdsResourceId(instanceId)
+                                                                                   .withType("RDS_INSTANCE"));
+        doReturn(describeResult).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class), any());
         final DeleteHandler handler = new DeleteHandler();
 
         final ResourceModel oldModel = ResourceModel.builder().instanceIdentifiers(ImmutableList.of("db1")).build();
@@ -124,11 +139,23 @@ public class DeleteHandlerTest {
         assertThat(response.getResourceModels()).isNull();
         assertThat(response.getMessage()).isNull();
         assertThat(response.getErrorCode()).isNull();
+
+        ArgumentCaptor<DeregisterDBProxyTargetsRequest> captor = ArgumentCaptor.forClass(DeregisterDBProxyTargetsRequest.class);
+        verify(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class), any());
+        verify(proxy, times(2)).injectCredentialsAndInvoke(captor.capture(), any());
+        DeregisterDBProxyTargetsRequest deregisterDBProxyTargetsRequest = captor.getValue();
+        assertThat(deregisterDBProxyTargetsRequest.getDBInstanceIdentifiers()).isEqualTo(ImmutableList.of(instanceId));
     }
 
     @Test
-    public void handleRequest_DeregisterException() {
-        doThrow(AmazonRDSException.class).when(proxy).injectCredentialsAndInvoke(any(DeregisterDBProxyTargetsRequest.class), any());
+    public void handleRequest_DeregisterCluster() {
+        String instanceId= "instanceID";
+        String clusterName = "clusterName";
+        DBProxyTarget instance = new DBProxyTarget().withRdsResourceId(instanceId).withType("RDS_INSTANCE");
+        DBProxyTarget cluster = new DBProxyTarget().withRdsResourceId(clusterName).withType("TRACKED_CLUSTER");
+        DescribeDBProxyTargetsResult describeResult = new DescribeDBProxyTargetsResult()
+                                                              .withTargets(instance, cluster);
+        doReturn(describeResult).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class), any());
         final DeleteHandler handler = new DeleteHandler();
 
         final ResourceModel oldModel = ResourceModel.builder().instanceIdentifiers(ImmutableList.of("db1")).build();
@@ -156,5 +183,11 @@ public class DeleteHandlerTest {
         assertThat(response.getResourceModels()).isNull();
         assertThat(response.getMessage()).isNull();
         assertThat(response.getErrorCode()).isNull();
+
+        ArgumentCaptor<DeregisterDBProxyTargetsRequest> captor = ArgumentCaptor.forClass(DeregisterDBProxyTargetsRequest.class);
+        verify(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class), any());
+        verify(proxy, times(2)).injectCredentialsAndInvoke(captor.capture(), any());
+        DeregisterDBProxyTargetsRequest deregisterDBProxyTargetsRequest = captor.getValue();
+        assertThat(deregisterDBProxyTargetsRequest.getDBClusterIdentifiers()).isEqualTo(ImmutableList.of(clusterName));
     }
 }

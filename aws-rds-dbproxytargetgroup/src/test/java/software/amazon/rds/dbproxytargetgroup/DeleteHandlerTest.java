@@ -21,6 +21,7 @@ import com.amazonaws.services.rds.model.DeregisterDBProxyTargetsRequest;
 import com.amazonaws.services.rds.model.DescribeDBProxyTargetsRequest;
 import com.amazonaws.services.rds.model.DescribeDBProxyTargetsResult;
 import com.google.common.collect.ImmutableList;
+import jdk.nashorn.internal.ir.annotations.Immutable;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.OperationStatus;
@@ -145,6 +146,7 @@ public class DeleteHandlerTest {
         verify(proxy, times(2)).injectCredentialsAndInvoke(captor.capture(), any());
         DeregisterDBProxyTargetsRequest deregisterDBProxyTargetsRequest = captor.getValue();
         assertThat(deregisterDBProxyTargetsRequest.getDBInstanceIdentifiers()).isEqualTo(ImmutableList.of(instanceId));
+        assertThat(deregisterDBProxyTargetsRequest.getDBClusterIdentifiers().size()).isEqualTo(0);
     }
 
     @Test
@@ -189,5 +191,6 @@ public class DeleteHandlerTest {
         verify(proxy, times(2)).injectCredentialsAndInvoke(captor.capture(), any());
         DeregisterDBProxyTargetsRequest deregisterDBProxyTargetsRequest = captor.getValue();
         assertThat(deregisterDBProxyTargetsRequest.getDBClusterIdentifiers()).isEqualTo(ImmutableList.of(clusterName));
+        assertThat(deregisterDBProxyTargetsRequest.getDBInstanceIdentifiers().size()).isEqualTo(0);
     }
 }

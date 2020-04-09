@@ -155,7 +155,9 @@
     },
     "update": {
       "permissions": [
-        "rds:ModifyDBProxy"
+        "rds:ModifyDBProxy",
+        "rds:AddTagsToResource",
+        "rds:RemoveTagsFromResource"
       ]
     },
     "delete": {

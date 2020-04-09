@@ -149,13 +149,12 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
     private boolean deregisterOldTags(ResourceModel oldModel, ResourceModel newModel) {
         List<TagFormat> oldTags = getTagKeys(oldModel);
         List<TagFormat> newTags = getTagKeys(newModel);
-        List<TagFormat> tagsToRemove =  listNewTags(oldTags, newTags);
+        List<TagFormat> tagsToRemove = listNewTags(oldTags, newTags);
         List<String> tagKeyList = tagsToRemove.stream().map(t -> t.getKey()).collect(Collectors.toList());
 
-        String proxyArn = oldModel.getDbProxyArn();
         if (tagKeyList.size() > 0) {
             RemoveTagsFromResourceRequest removeTagsRequest = new RemoveTagsFromResourceRequest()
-                                                                      .withResourceName(proxyArn)
+                                                                      .withResourceName(oldModel.getDbProxyArn())
                                                                       .withTagKeys(tagKeyList);
             clientProxy.injectCredentialsAndInvoke(removeTagsRequest, rdsClient::removeTagsFromResource);
         }
@@ -165,12 +164,11 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
     private boolean registerNewTags(ResourceModel oldModel, ResourceModel newModel) {
         List<TagFormat> oldTags = getTagKeys(oldModel);
         List<TagFormat> newTags = getTagKeys(newModel);
-        List<TagFormat> tagsToAdd =  listNewTags(newTags, oldTags);
+        List<TagFormat> tagsToAdd = listNewTags(newTags, oldTags);
 
-        String proxyArn = oldModel.getDbProxyArn();
         if (tagsToAdd.size() > 0 ) {
             AddTagsToResourceRequest addTagsRequest = new AddTagsToResourceRequest()
-                                                              .withResourceName(proxyArn)
+                                                              .withResourceName(oldModel.getDbProxyArn())
                                                               .withTags(toRDSTags(tagsToAdd));
             clientProxy.injectCredentialsAndInvoke(addTagsRequest, rdsClient::addTagsToResource);
         }

@@ -4,16 +4,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.amazonaws.services.rds.model.AddTagsToResourceRequest;
 import com.amazonaws.services.rds.model.DBProxy;
 import com.amazonaws.services.rds.model.ModifyDBProxyRequest;
 import com.amazonaws.services.rds.model.ModifyDBProxyResult;
+import com.amazonaws.services.rds.model.RemoveTagsFromResourceRequest;
+import com.amazonaws.services.rds.model.Tag;
+import com.google.common.collect.ImmutableList;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.OperationStatus;
@@ -41,6 +47,8 @@ public class UpdateHandlerTest {
         final CallbackContext context = CallbackContext.builder()
                                                        .proxy(dbProxy)
                                                        .stabilizationRetriesRemaining(1)
+                                                       .tagsRegistered(true)
+                                                       .tagsDeregistered(true)
                                                        .build();
 
         final UpdateHandler handler = new UpdateHandler();
@@ -72,6 +80,8 @@ public class UpdateHandlerTest {
 
         final CallbackContext context = CallbackContext.builder()
                                                        .stabilizationRetriesRemaining(1)
+                                                       .tagsRegistered(true)
+                                                       .tagsDeregistered(true)
                                                        .build();
 
         final UpdateHandler handler = new UpdateHandler();
@@ -87,6 +97,8 @@ public class UpdateHandlerTest {
         final CallbackContext desiredOutputContext = CallbackContext.builder()
                                                                     .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
                                                                     .proxy(dbProxy)
+                                                                    .tagsRegistered(true)
+                                                                    .tagsDeregistered(true)
                                                                     .build();
 
         final ProgressEvent<ResourceModel, CallbackContext> response
@@ -99,5 +111,202 @@ public class UpdateHandlerTest {
         assertThat(response.getResourceModels()).containsOnly(request.getDesiredResourceState(), request.getPreviousResourceState());
         assertThat(response.getMessage()).isNull();
         assertThat(response.getErrorCode()).isNull();
+    }
+
+    @Test
+    public void testDeregisterTags() {
+        final CallbackContext context = CallbackContext.builder()
+                                                       .stabilizationRetriesRemaining(1)
+                                                       .build();
+
+        final UpdateHandler handler = new UpdateHandler();
+
+        TagFormat tag1 = new TagFormat();
+        tag1.setKey("key1");
+        tag1.setValue("value1");
+        TagFormat tag2 = new TagFormat();
+        tag2.setKey("key2");
+        tag2.setValue("value2");
+
+        final ResourceModel desiredModel = ResourceModel.builder().build();
+        final ResourceModel oldModel = ResourceModel.builder().tags(ImmutableList.of(tag1, tag2)).build();
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                                                                      .desiredResourceState(desiredModel)
+                                                                      .previousResourceState(oldModel)
+                                                                      .build();
+
+        final CallbackContext desiredOutputContext = CallbackContext.builder()
+                                                                    .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
+                                                                    .tagsDeregistered(true)
+                                                                    .build();
+
+        final ProgressEvent<ResourceModel, CallbackContext> response
+                = handler.handleRequest(proxy, request, context, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
+        assertThat(response.getCallbackContext()).isEqualToComparingFieldByField(desiredOutputContext);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).containsOnly(request.getDesiredResourceState(), request.getPreviousResourceState());
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+
+        ArgumentCaptor<RemoveTagsFromResourceRequest> captor = ArgumentCaptor.forClass(RemoveTagsFromResourceRequest.class);
+        verify(proxy).injectCredentialsAndInvoke(captor.capture(), any());
+        RemoveTagsFromResourceRequest removeTagsRequest = captor.getValue();
+        assertThat(removeTagsRequest.getTagKeys().size()).isEqualTo(2);
+    }
+
+    @Test
+    public void testRegisterTags() {
+        final CallbackContext context = CallbackContext.builder()
+                                                       .stabilizationRetriesRemaining(1)
+                                                       .tagsDeregistered(true)
+                                                       .build();
+
+        final UpdateHandler handler = new UpdateHandler();
+
+        TagFormat tag1 = new TagFormat();
+        tag1.setKey("key1");
+        tag1.setValue("value1");
+        TagFormat tag2 = new TagFormat();
+        tag2.setKey("key2");
+        tag2.setValue("value2");
+
+        final ResourceModel desiredModel = ResourceModel.builder().tags(ImmutableList.of(tag1, tag2)).build();
+        final ResourceModel oldModel = ResourceModel.builder().build();
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                                                                      .desiredResourceState(desiredModel)
+                                                                      .previousResourceState(oldModel)
+                                                                      .build();
+
+        final CallbackContext desiredOutputContext = CallbackContext.builder()
+                                                                    .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
+                                                                    .tagsDeregistered(true)
+                                                                    .tagsRegistered(true)
+                                                                    .build();
+
+        final ProgressEvent<ResourceModel, CallbackContext> response
+                = handler.handleRequest(proxy, request, context, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
+        assertThat(response.getCallbackContext()).isEqualToComparingFieldByField(desiredOutputContext);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).containsOnly(request.getDesiredResourceState(), request.getPreviousResourceState());
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+
+        ArgumentCaptor<AddTagsToResourceRequest> captor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
+        verify(proxy).injectCredentialsAndInvoke(captor.capture(), any());
+        AddTagsToResourceRequest removeTagsRequest = captor.getValue();
+        assertThat(removeTagsRequest.getTags().size()).isEqualTo(2);
+    }
+
+    @Test
+    public void testChangedTagValue_deregister() {
+        final CallbackContext context = CallbackContext.builder()
+                                                       .stabilizationRetriesRemaining(1)
+                                                       .build();
+
+        final UpdateHandler handler = new UpdateHandler();
+
+        String sharedKey = "key1";
+        TagFormat tag1 = new TagFormat();
+        tag1.setKey(sharedKey);
+        tag1.setValue("value1");
+        TagFormat tag2 = new TagFormat();
+        tag2.setKey("key2");
+        tag2.setValue("value2");
+        TagFormat tag3 = new TagFormat();
+        tag3.setKey(sharedKey);
+        tag3.setValue("value3");
+
+        final ResourceModel desiredModel = ResourceModel.builder().tags(ImmutableList.of(tag3, tag2)).build();
+        final ResourceModel oldModel = ResourceModel.builder().tags(ImmutableList.of(tag1, tag2)).build();
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                                                                      .desiredResourceState(desiredModel)
+                                                                      .previousResourceState(oldModel)
+                                                                      .build();
+
+        final CallbackContext desiredOutputContext = CallbackContext.builder()
+                                                                    .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
+                                                                    .tagsDeregistered(true)
+                                                                    .build();
+
+        final ProgressEvent<ResourceModel, CallbackContext> response
+                = handler.handleRequest(proxy, request, context, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
+        assertThat(response.getCallbackContext()).isEqualToComparingFieldByField(desiredOutputContext);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).containsOnly(request.getDesiredResourceState(), request.getPreviousResourceState());
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+
+        ArgumentCaptor<RemoveTagsFromResourceRequest> captor = ArgumentCaptor.forClass(RemoveTagsFromResourceRequest.class);
+        verify(proxy).injectCredentialsAndInvoke(captor.capture(), any());
+        RemoveTagsFromResourceRequest removeTagsRequest = captor.getValue();
+        assertThat(removeTagsRequest.getTagKeys().size()).isEqualTo(1);
+        assertThat(removeTagsRequest.getTagKeys().get(0)).isEqualTo(sharedKey);
+    }
+
+    @Test
+    public void testChangedTagValue_Register() {
+        final CallbackContext context = CallbackContext.builder()
+                                                       .stabilizationRetriesRemaining(1)
+                                                       .tagsDeregistered(true)
+                                                       .build();
+
+        final UpdateHandler handler = new UpdateHandler();
+
+        String sharedKey = "key1";
+        String newValue = "value3";
+        TagFormat tag1 = new TagFormat();
+        tag1.setKey(sharedKey);
+        tag1.setValue("value1");
+        TagFormat tag2 = new TagFormat();
+        tag2.setKey("key2");
+        tag2.setValue("value2");
+        TagFormat tag3 = new TagFormat();
+        tag3.setKey(sharedKey);
+        tag3.setValue(newValue);
+
+        final ResourceModel desiredModel = ResourceModel.builder().tags(ImmutableList.of(tag3, tag2)).build();
+        final ResourceModel oldModel = ResourceModel.builder().tags(ImmutableList.of(tag1, tag2)).build();
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                                                                      .desiredResourceState(desiredModel)
+                                                                      .previousResourceState(oldModel)
+                                                                      .build();
+
+        final CallbackContext desiredOutputContext = CallbackContext.builder()
+                                                                    .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
+                                                                    .tagsDeregistered(true)
+                                                                    .tagsRegistered(true)
+                                                                    .build();
+
+        final ProgressEvent<ResourceModel, CallbackContext> response
+                = handler.handleRequest(proxy, request, context, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
+        assertThat(response.getCallbackContext()).isEqualToComparingFieldByField(desiredOutputContext);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).containsOnly(request.getDesiredResourceState(), request.getPreviousResourceState());
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+
+        ArgumentCaptor<AddTagsToResourceRequest> captor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
+        verify(proxy).injectCredentialsAndInvoke(captor.capture(), any());
+        AddTagsToResourceRequest addTagRequest = captor.getValue();
+        assertThat(addTagRequest.getTags().size()).isEqualTo(1);
+        Tag addedTag = addTagRequest.getTags().get(0);
+        assertThat(addedTag.getKey()).isEqualTo(sharedKey);
+        assertThat(addedTag.getValue()).isEqualTo(newValue);
     }
 }

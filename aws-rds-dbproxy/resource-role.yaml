@@ -24,10 +24,12 @@ Resources:
               - Effect: Allow
                 Action:
                 - "iam:PassRole"
+                - "rds:AddTagsToResource"
                 - "rds:CreateDBProxy"
                 - "rds:DeleteDBProxy"
                 - "rds:DescribeDBProxies"
                 - "rds:ModifyDBProxy"
+                - "rds:RemoveTagsFromResource"
                 Resource: "*"
 Outputs:
   ExecutionRoleArn:

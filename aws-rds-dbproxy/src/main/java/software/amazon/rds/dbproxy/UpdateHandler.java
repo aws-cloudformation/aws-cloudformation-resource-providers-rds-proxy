@@ -1,16 +1,22 @@
 package software.amazon.rds.dbproxy;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 import com.amazonaws.services.rds.AmazonRDS;
 import com.amazonaws.services.rds.AmazonRDSClientBuilder;
+import com.amazonaws.services.rds.model.AddTagsToResourceRequest;
 import com.amazonaws.services.rds.model.DBProxy;
 import com.amazonaws.services.rds.model.DBProxyNotFoundException;
 import com.amazonaws.services.rds.model.DescribeDBProxiesRequest;
 import com.amazonaws.services.rds.model.DescribeDBProxiesResult;
 import com.amazonaws.services.rds.model.ModifyDBProxyRequest;
 import com.amazonaws.services.rds.model.ModifyDBProxyResult;
+import com.amazonaws.services.rds.model.RemoveTagsFromResourceRequest;
+import com.amazonaws.services.rds.model.Tag;
 import com.amazonaws.services.rds.model.UserAuthConfig;
 import com.google.common.collect.ImmutableList;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -23,6 +29,7 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 public class UpdateHandler extends BaseHandler<CallbackContext> {
     private AmazonWebServicesClientProxy clientProxy;
     private AmazonRDS rdsClient;
+    private Logger log;
 
     private static final String TIMED_OUT_MESSAGE = "Timed out waiting for proxy to finish modification.";
     @Override
@@ -37,6 +44,7 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
 
         clientProxy = proxy;
         rdsClient = AmazonRDSClientBuilder.defaultClient();
+        log = logger;
 
         final CallbackContext currentContext = callbackContext == null ?
                                                CallbackContext.builder().stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES).build() :
@@ -56,12 +64,38 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
             throw new RuntimeException(TIMED_OUT_MESSAGE);
         }
 
+        // Update tags
+        if (!callbackContext.isTagsDeregistered()) {
+            return ProgressEvent.<ResourceModel, CallbackContext>builder()
+                           .resourceModels(ImmutableList.of(oldModel, newModel))
+                           .status(OperationStatus.IN_PROGRESS)
+                           .callbackContext(CallbackContext.builder()
+                                                           .tagsDeregistered(deregisterOldTags(oldModel, newModel))
+                                                           .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
+                                                           .build())
+                           .build();
+        }
+
+        if (!callbackContext.isTagsRegistered()) {
+            return ProgressEvent.<ResourceModel, CallbackContext>builder()
+                           .resourceModels(ImmutableList.of(oldModel, newModel))
+                           .status(OperationStatus.IN_PROGRESS)
+                           .callbackContext(CallbackContext.builder()
+                                                           .tagsDeregistered(callbackContext.isTagsDeregistered())
+                                                           .tagsRegistered(registerNewTags(oldModel, newModel))
+                                                           .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
+                                                           .build())
+                           .build();
+        }
+
         // Update proxy settings
         if (proxyStateSoFar == null) {
             return ProgressEvent.<ResourceModel, CallbackContext>builder()
                            .resourceModels(ImmutableList.of(oldModel, newModel))
                            .status(OperationStatus.IN_PROGRESS)
                            .callbackContext(CallbackContext.builder()
+                                                           .tagsDeregistered(callbackContext.isTagsDeregistered())
+                                                           .tagsRegistered(callbackContext.isTagsRegistered())
                                                            .proxy(updateProxySettings(oldModel, newModel))
                                                            .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
                                                            .build())
@@ -88,11 +122,57 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
                            .resourceModels(ImmutableList.of(oldModel, newModel))
                            .status(OperationStatus.IN_PROGRESS)
                            .callbackContext(CallbackContext.builder()
+                                                           .tagsDeregistered(callbackContext.isTagsDeregistered())
+                                                           .tagsRegistered(callbackContext.isTagsRegistered())
                                                            .proxy(proxy)
                                                            .stabilizationRetriesRemaining(callbackContext.getStabilizationRetriesRemaining() - 1)
                                                            .build())
                            .build();
         }
+    }
+
+    private List<TagFormat> getTagKeys(ResourceModel model) {
+        return Optional.ofNullable(model.getTags()).orElse(new ArrayList<>()).stream().collect(Collectors.toList());
+    }
+
+    private List<TagFormat> listNewTags(List<TagFormat> list1, List<TagFormat> list2) {
+        if (list1.size() > 0 && list2.size() > 0) {
+            list1.removeAll(list2);
+        }
+        return list1;
+    }
+
+    private List<Tag> toRDSTags(List<TagFormat> tagList) {
+        return tagList.stream().map(t -> new Tag().withKey(t.getKey()).withValue(t.getValue())).collect(Collectors.toList());
+    }
+
+    private boolean deregisterOldTags(ResourceModel oldModel, ResourceModel newModel) {
+        List<TagFormat> oldTags = getTagKeys(oldModel);
+        List<TagFormat> newTags = getTagKeys(newModel);
+        List<TagFormat> tagsToRemove = listNewTags(oldTags, newTags);
+        List<String> tagKeyList = tagsToRemove.stream().map(t -> t.getKey()).collect(Collectors.toList());
+
+        if (tagKeyList.size() > 0) {
+            RemoveTagsFromResourceRequest removeTagsRequest = new RemoveTagsFromResourceRequest()
+                                                                      .withResourceName(oldModel.getDbProxyArn())
+                                                                      .withTagKeys(tagKeyList);
+            clientProxy.injectCredentialsAndInvoke(removeTagsRequest, rdsClient::removeTagsFromResource);
+        }
+        return true;
+    }
+
+    private boolean registerNewTags(ResourceModel oldModel, ResourceModel newModel) {
+        List<TagFormat> oldTags = getTagKeys(oldModel);
+        List<TagFormat> newTags = getTagKeys(newModel);
+        List<TagFormat> tagsToAdd = listNewTags(newTags, oldTags);
+
+        if (tagsToAdd.size() > 0 ) {
+            AddTagsToResourceRequest addTagsRequest = new AddTagsToResourceRequest()
+                                                              .withResourceName(oldModel.getDbProxyArn())
+                                                              .withTags(toRDSTags(tagsToAdd));
+            clientProxy.injectCredentialsAndInvoke(addTagsRequest, rdsClient::addTagsToResource);
+        }
+        return true;
     }
 
     private DBProxy updateProxySettings(ResourceModel oldModel, ResourceModel newModel) {

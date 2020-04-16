@@ -154,7 +154,7 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
 
         if (tagKeyList.size() > 0) {
             RemoveTagsFromResourceRequest removeTagsRequest = new RemoveTagsFromResourceRequest()
-                                                                      .withResourceName(oldModel.getDbProxyArn())
+                                                                      .withResourceName(oldModel.getDBProxyArn())
                                                                       .withTagKeys(tagKeyList);
             clientProxy.injectCredentialsAndInvoke(removeTagsRequest, rdsClient::removeTagsFromResource);
         }
@@ -168,7 +168,7 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
 
         if (tagsToAdd.size() > 0 ) {
             AddTagsToResourceRequest addTagsRequest = new AddTagsToResourceRequest()
-                                                              .withResourceName(oldModel.getDbProxyArn())
+                                                              .withResourceName(oldModel.getDBProxyArn())
                                                               .withTags(toRDSTags(tagsToAdd));
             clientProxy.injectCredentialsAndInvoke(addTagsRequest, rdsClient::addTagsToResource);
         }

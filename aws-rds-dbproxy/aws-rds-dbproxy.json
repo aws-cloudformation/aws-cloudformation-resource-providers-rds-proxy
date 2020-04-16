@@ -60,11 +60,11 @@
         "$ref": "#/definitions/AuthFormat"
       }
     },
-    "DbProxyArn": {
+    "DBProxyArn": {
       "description": "The Amazon Resource Name (ARN) for the proxy.",
       "type": "string"
     },
-    "DbProxyName": {
+    "DBProxyName": {
       "description": "The identifier for the proxy. This name must be unique for all proxies owned by your AWS account in the specified AWS Region.",
       "type": "string",
       "pattern": "[0-z]*",
@@ -124,13 +124,13 @@
   "additionalProperties": false,
   "required": [
     "Auth",
-    "DbProxyName",
+    "DBProxyName",
     "EngineFamily",
     "RoleArn",
     "VpcSubnetIds"
   ],
   "readOnlyProperties": [
-    "/properties/DbProxyArn",
+    "/properties/DBProxyArn",
     "/properties/Endpoint"
   ],
   "createOnlyProperties": [
@@ -138,7 +138,7 @@
     "/properties/VpcSubnetIds"
   ],
   "primaryIdentifier": [
-    "/properties/DbProxyArn"
+    "/properties/DBProxyArn"
   ],
   "handlers": {
     "create": {

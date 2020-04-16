@@ -26,7 +26,7 @@ public class ReadHandler extends BaseHandler<CallbackContext> {
 
         final ResourceModel desiredResource = request.getDesiredResourceState();
 
-        String proxyName = desiredResource.getDbProxyName();
+        String proxyName = desiredResource.getDBProxyName();
         String targetGroupName = Optional.ofNullable(desiredResource.getTargetGroupName()).orElse("default");
 
         clientProxy = proxy;

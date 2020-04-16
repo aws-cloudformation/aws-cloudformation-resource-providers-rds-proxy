@@ -15,7 +15,7 @@ public class Utility {
     public static ResourceModel resultToModel(DBProxyTargetGroup targetGroup){
             return ResourceModel
                    .builder()
-                   .dbProxyName(targetGroup.getDBProxyName())
+                   .dBProxyName(targetGroup.getDBProxyName())
                    .targetGroupName(targetGroup.getTargetGroupName())
                    .connectionPoolConfigurationInfo(resultToModel(targetGroup.getConnectionPoolConfig()))
                    .build();
@@ -33,10 +33,10 @@ public class Utility {
     }
 
     static List<String> getClusters(ResourceModel model) {
-        return Optional.ofNullable(model.getClusterIdentifiers()).orElse(new ArrayList<>());
+        return Optional.ofNullable(model.getDBClusterIdentifiers()).orElse(new ArrayList<>());
     }
 
     static List<String> getInstances(ResourceModel model) {
-        return Optional.ofNullable(model.getInstanceIdentifiers()).orElse(new ArrayList<>());
+        return Optional.ofNullable(model.getDBInstanceIdentifiers()).orElse(new ArrayList<>());
     }
 }

@@ -52,7 +52,7 @@ public class ReadHandlerTest {
                 .when(proxy)
                 .injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class), any());
 
-        final ResourceModel model = ResourceModel.builder().dbProxyName("proxy1").build();
+        final ResourceModel model = ResourceModel.builder().dBProxyName("proxy1").build();
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                                                                       .desiredResourceState(model)
@@ -79,7 +79,7 @@ public class ReadHandlerTest {
                 .when(proxy)
                 .injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class), any());
 
-        final ResourceModel model = ResourceModel.builder().dbProxyName("proxy1").build();
+        final ResourceModel model = ResourceModel.builder().dBProxyName("proxy1").build();
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                                                                       .desiredResourceState(model)

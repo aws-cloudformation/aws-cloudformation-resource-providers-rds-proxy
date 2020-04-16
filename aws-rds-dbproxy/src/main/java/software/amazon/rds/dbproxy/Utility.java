@@ -23,8 +23,8 @@ public class Utility {
         return ResourceModel
                        .builder()
                        .auth(authModels)
-                       .dbProxyArn(proxy.getDBProxyArn())
-                       .dbProxyName(proxy.getDBProxyName())
+                       .dBProxyArn(proxy.getDBProxyArn())
+                       .dBProxyName(proxy.getDBProxyName())
                        .debugLogging(proxy.getDebugLogging())
                        .endpoint(proxy.getEndpoint())
                        .engineFamily(proxy.getEngineFamily())

@@ -104,7 +104,7 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
                            .resourceModel(model)
                            .status(OperationStatus.IN_PROGRESS)
                            .callbackContext(CallbackContext.builder()
-                                                           .proxy(describeProxyStatus(model.getDbProxyName()))
+                                                           .proxy(describeProxyStatus(model.getDBProxyName()))
                                                            .stabilizationRetriesRemaining(callbackContext.getStabilizationRetriesRemaining() - 1)
                                                            .build())
                            .build();
@@ -116,7 +116,7 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
 
         if (modelConnectionPoolConfig == null) {
             DescribeDBProxyTargetGroupsRequest describeRequest = new DescribeDBProxyTargetGroupsRequest()
-                                                                         .withDBProxyName(model.getDbProxyName())
+                                                                         .withDBProxyName(model.getDBProxyName())
                                                                          .withTargetGroupName(model.getTargetGroupName());
             return clientProxy.injectCredentialsAndInvoke(describeRequest, rdsClient::describeDBProxyTargetGroups).getTargetGroups().get(0);
         }
@@ -130,7 +130,7 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
                         .withInitQuery(modelConnectionPoolConfig.getInitQuery());
 
         ModifyDBProxyTargetGroupRequest request = new ModifyDBProxyTargetGroupRequest()
-                                                          .withDBProxyName(model.getDbProxyName())
+                                                          .withDBProxyName(model.getDBProxyName())
                                                           .withTargetGroupName(model.getTargetGroupName())
                                                           .withConnectionPoolConfig(connectionPoolConfiguration);
 
@@ -146,7 +146,7 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
         }
 
         RegisterDBProxyTargetsRequest registerRequest = new RegisterDBProxyTargetsRequest()
-                                                                .withDBProxyName(model.getDbProxyName())
+                                                                .withDBProxyName(model.getDBProxyName())
                                                                 .withTargetGroupName(model.getTargetGroupName())
                                                                 .withDBClusterIdentifiers(newClusters)
                                                                 .withDBInstanceIdentifiers(newInstances);

@@ -115,7 +115,7 @@ public class DeleteHandlerTest {
         doReturn(describeResult).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class), any());
         final DeleteHandler handler = new DeleteHandler();
 
-        final ResourceModel oldModel = ResourceModel.builder().instanceIdentifiers(ImmutableList.of("db1")).build();
+        final ResourceModel oldModel = ResourceModel.builder().dBInstanceIdentifiers(ImmutableList.of("db1")).build();
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                                                                       .desiredResourceState(oldModel)
@@ -160,7 +160,7 @@ public class DeleteHandlerTest {
         doReturn(describeResult).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class), any());
         final DeleteHandler handler = new DeleteHandler();
 
-        final ResourceModel oldModel = ResourceModel.builder().instanceIdentifiers(ImmutableList.of("db1")).build();
+        final ResourceModel oldModel = ResourceModel.builder().dBInstanceIdentifiers(ImmutableList.of("db1")).build();
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                                                                       .desiredResourceState(oldModel)

@@ -37,7 +37,7 @@
     }
   },
   "properties": {
-    "DbProxyName": {
+    "DBProxyName": {
       "description": "The identifier for the proxy.",
       "type": "string",
       "pattern": "[A-z][0-z]*",
@@ -57,13 +57,13 @@
     "ConnectionPoolConfigurationInfo": {
       "$ref": "#/definitions/ConnectionPoolConfigurationInfoFormat"
     },
-    "InstanceIdentifiers": {
+    "DBInstanceIdentifiers": {
       "type": "array",
       "items": {
         "type": "string"
       }
     },
-    "ClusterIdentifiers": {
+    "DBClusterIdentifiers": {
       "type": "array",
       "items": {
         "type": "string"
@@ -72,7 +72,7 @@
   },
   "additionalProperties": false,
   "required": [
-    "DbProxyName",
+    "DBProxyName",
     "TargetGroupName"
   ],
   "readOnlyProperties": [

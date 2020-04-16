@@ -9,7 +9,7 @@ public class Matchers {
                                                 final DBProxyTargetGroup sdkModel) {
         assertThat(rawModel).isInstanceOf(ResourceModel.class);
         ResourceModel model = (ResourceModel)rawModel;
-        assertThat(model.getDbProxyName()).isEqualTo(sdkModel.getDBProxyName());
+        assertThat(model.getDBProxyName()).isEqualTo(sdkModel.getDBProxyName());
         assertThat(model.getTargetGroupName()).isEqualTo(sdkModel.getTargetGroupName());
     }
 }

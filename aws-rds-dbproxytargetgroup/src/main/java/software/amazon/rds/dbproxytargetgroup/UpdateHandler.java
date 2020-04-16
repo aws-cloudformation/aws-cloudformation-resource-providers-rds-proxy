@@ -108,7 +108,7 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
         ConnectionPoolConfigurationInfoFormat modelConnectionPoolConfig = newModel.getConnectionPoolConfigurationInfo();
         if (modelConnectionPoolConfig == null) {
             DescribeDBProxyTargetGroupsRequest describeRequest = new DescribeDBProxyTargetGroupsRequest()
-                                                                         .withDBProxyName(newModel.getDbProxyName())
+                                                                         .withDBProxyName(newModel.getDBProxyName())
                                                                          .withTargetGroupName(newModel.getTargetGroupName());
             return clientProxy.injectCredentialsAndInvoke(describeRequest, rdsClient::describeDBProxyTargetGroups).getTargetGroups().get(0);
         }
@@ -122,7 +122,7 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
                         .withInitQuery(modelConnectionPoolConfig.getInitQuery());
 
         ModifyDBProxyTargetGroupRequest request = new ModifyDBProxyTargetGroupRequest()
-                                                          .withDBProxyName(newModel.getDbProxyName())
+                                                          .withDBProxyName(newModel.getDBProxyName())
                                                           .withTargetGroupName(newModel.getTargetGroupName())
                                                           .withConnectionPoolConfig(connectionPoolConfiguration);
 
@@ -143,7 +143,7 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
         }
 
         RegisterDBProxyTargetsRequest registerRequest = new RegisterDBProxyTargetsRequest()
-                                                                .withDBProxyName(newModel.getDbProxyName())
+                                                                .withDBProxyName(newModel.getDBProxyName())
                                                                 .withTargetGroupName(newModel.getTargetGroupName())
                                                                 .withDBClusterIdentifiers(clustersToAdd)
                                                                 .withDBInstanceIdentifiers(instancesToAdd);
@@ -164,11 +164,10 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
         }
 
         DeregisterDBProxyTargetsRequest deregisterRequest = new DeregisterDBProxyTargetsRequest()
-                                                                    .withDBProxyName(newModel.getDbProxyName())
+                                                                    .withDBProxyName(newModel.getDBProxyName())
                                                                     .withTargetGroupName(newModel.getTargetGroupName())
                                                                     .withDBClusterIdentifiers(clustersToRemove)
                                                                     .withDBInstanceIdentifiers(instancesToRemove);
-
         clientProxy.injectCredentialsAndInvoke(deregisterRequest, rdsClient::deregisterDBProxyTargets);
         return true;
     }

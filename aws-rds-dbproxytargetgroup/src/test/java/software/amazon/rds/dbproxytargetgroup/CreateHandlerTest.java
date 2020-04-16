@@ -90,7 +90,7 @@ public class CreateHandlerTest {
         doReturn(new DescribeDBProxyTargetGroupsResult().withTargetGroups(dbProxyTargetGroup)).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetGroupsRequest.class), any());
         final CreateHandler handler = new CreateHandler();
 
-        final ResourceModel model = ResourceModel.builder().clusterIdentifiers(clusterId).build();
+        final ResourceModel model = ResourceModel.builder().dBClusterIdentifiers(clusterId).build();
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                                                                       .desiredResourceState(model)
@@ -189,7 +189,7 @@ public class CreateHandlerTest {
 
         ImmutableList<String> clusterId = ImmutableList.of("clusterId");
 
-        final ResourceModel model = ResourceModel.builder().clusterIdentifiers(clusterId).build();
+        final ResourceModel model = ResourceModel.builder().dBClusterIdentifiers(clusterId).build();
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                                                                       .desiredResourceState(model)
@@ -227,7 +227,7 @@ public class CreateHandlerTest {
 
         final CreateHandler handler = new CreateHandler();
         ImmutableList<String> clusterId = ImmutableList.of("clusterId");
-        final ResourceModel model = ResourceModel.builder().clusterIdentifiers(clusterId).build();
+        final ResourceModel model = ResourceModel.builder().dBClusterIdentifiers(clusterId).build();
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                                                                       .desiredResourceState(model)

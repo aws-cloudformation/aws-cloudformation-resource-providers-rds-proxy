@@ -68,7 +68,7 @@ public class DeleteHandler extends BaseHandler<CallbackContext> {
 
     private boolean deregisterOldTargets(ResourceModel model) {
         DescribeDBProxyTargetsRequest describeDBProxyTargetsRequest = new DescribeDBProxyTargetsRequest()
-                                                                              .withDBProxyName(model.getDbProxyName())
+                                                                              .withDBProxyName(model.getDBProxyName())
                                                                               .withTargetGroupName(model.getTargetGroupName());
 
         DescribeDBProxyTargetsResult describeResult = clientProxy.injectCredentialsAndInvoke(describeDBProxyTargetsRequest, rdsClient::describeDBProxyTargets);
@@ -85,12 +85,12 @@ public class DeleteHandler extends BaseHandler<CallbackContext> {
 
         if (dbClusters.size() > 0) {
             DeregisterDBProxyTargetsRequest deregisterRequest = new DeregisterDBProxyTargetsRequest()
-                                                                        .withDBProxyName(model.getDbProxyName())
+                                                                        .withDBProxyName(model.getDBProxyName())
                                                                         .withDBClusterIdentifiers(dbClusters);
             clientProxy.injectCredentialsAndInvoke(deregisterRequest, rdsClient::deregisterDBProxyTargets);
         } else if (dbInstances.size() > 0){
             DeregisterDBProxyTargetsRequest deregisterRequest = new DeregisterDBProxyTargetsRequest()
-                                                                        .withDBProxyName(model.getDbProxyName())
+                                                                        .withDBProxyName(model.getDBProxyName())
                                                                         .withDBInstanceIdentifiers(dbInstances);
             clientProxy.injectCredentialsAndInvoke(deregisterRequest, rdsClient::deregisterDBProxyTargets);
         }

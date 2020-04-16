@@ -25,7 +25,7 @@ public class ReadHandler extends BaseHandler<CallbackContext> {
         clientProxy = proxy;
         rdsClient = AmazonRDSClientBuilder.defaultClient();
 
-        final ResourceModel model = describeDBProxy(request.getDesiredResourceState().getDbProxyName());
+        final ResourceModel model = describeDBProxy(request.getDesiredResourceState().getDBProxyName());
 
         return ProgressEvent.<ResourceModel, CallbackContext>builder()
                        .resourceModel(model)

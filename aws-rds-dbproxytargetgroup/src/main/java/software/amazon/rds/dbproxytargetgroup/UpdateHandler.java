@@ -23,6 +23,7 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 public class UpdateHandler extends BaseHandler<CallbackContext> {
     private AmazonWebServicesClientProxy clientProxy;
     private AmazonRDS rdsClient;
+    private Logger log;
 
     private static final String TIMED_OUT_MESSAGE = "Timed out waiting for ProxyTargetGroup to finish modification.";
 
@@ -38,6 +39,7 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
 
         clientProxy = proxy;
         rdsClient = AmazonRDSClientBuilder.defaultClient();
+        log = logger;
 
         final CallbackContext currentContext = Optional.ofNullable(callbackContext)
                                                        .orElse(CallbackContext.builder()
@@ -108,7 +110,7 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
         ConnectionPoolConfigurationInfoFormat modelConnectionPoolConfig = newModel.getConnectionPoolConfigurationInfo();
         if (modelConnectionPoolConfig == null) {
             DescribeDBProxyTargetGroupsRequest describeRequest = new DescribeDBProxyTargetGroupsRequest()
-                                                                         .withDBProxyName(newModel.getDbProxyName())
+                                                                         .withDBProxyName(newModel.getDBProxyName())
                                                                          .withTargetGroupName(newModel.getTargetGroupName());
             return clientProxy.injectCredentialsAndInvoke(describeRequest, rdsClient::describeDBProxyTargetGroups).getTargetGroups().get(0);
         }
@@ -122,7 +124,7 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
                         .withInitQuery(modelConnectionPoolConfig.getInitQuery());
 
         ModifyDBProxyTargetGroupRequest request = new ModifyDBProxyTargetGroupRequest()
-                                                          .withDBProxyName(newModel.getDbProxyName())
+                                                          .withDBProxyName(newModel.getDBProxyName())
                                                           .withTargetGroupName(newModel.getTargetGroupName())
                                                           .withConnectionPoolConfig(connectionPoolConfiguration);
 
@@ -143,7 +145,7 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
         }
 
         RegisterDBProxyTargetsRequest registerRequest = new RegisterDBProxyTargetsRequest()
-                                                                .withDBProxyName(newModel.getDbProxyName())
+                                                                .withDBProxyName(newModel.getDBProxyName())
                                                                 .withTargetGroupName(newModel.getTargetGroupName())
                                                                 .withDBClusterIdentifiers(clustersToAdd)
                                                                 .withDBInstanceIdentifiers(instancesToAdd);
@@ -164,11 +166,11 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
         }
 
         DeregisterDBProxyTargetsRequest deregisterRequest = new DeregisterDBProxyTargetsRequest()
-                                                                    .withDBProxyName(newModel.getDbProxyName())
+                                                                    .withDBProxyName(newModel.getDBProxyName())
                                                                     .withTargetGroupName(newModel.getTargetGroupName())
                                                                     .withDBClusterIdentifiers(clustersToRemove)
                                                                     .withDBInstanceIdentifiers(instancesToRemove);
-
+        log.log("Deregister Request: " + deregisterRequest);
         clientProxy.injectCredentialsAndInvoke(deregisterRequest, rdsClient::deregisterDBProxyTargets);
         return true;
     }

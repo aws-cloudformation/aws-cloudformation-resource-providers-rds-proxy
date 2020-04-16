@@ -9,6 +9,6 @@ public class Matchers {
                                                 final DBProxy sdkModel) {
         assertThat(rawModel).isInstanceOf(ResourceModel.class);
         ResourceModel model = (ResourceModel)rawModel;
-        assertThat(model.getDbProxyName()).isEqualTo(sdkModel.getDBProxyName());
+        assertThat(model.getDBProxyName()).isEqualTo(sdkModel.getDBProxyName());
     }
 }

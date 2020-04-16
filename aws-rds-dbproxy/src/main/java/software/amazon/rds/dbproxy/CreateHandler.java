@@ -65,7 +65,7 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
                                                            .build())
                            .build();
         } else if (proxyStateSoFar.getStatus().equals(Constants.AVAILABLE_PROXY_STATE)) {
-            model.setDbProxyArn(proxyStateSoFar.getDBProxyArn());
+            model.setDBProxyArn(proxyStateSoFar.getDBProxyArn());
             model.setEndpoint(proxyStateSoFar.getEndpoint());
 
             return ProgressEvent.<ResourceModel, CallbackContext>builder()
@@ -78,7 +78,7 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
                            .errorCode(HandlerErrorCode.NotFound)
                            .build();
         } else {
-            model.setDbProxyArn(proxyStateSoFar.getDBProxyArn());
+            model.setDBProxyArn(proxyStateSoFar.getDBProxyArn());
             model.setEndpoint(proxyStateSoFar.getEndpoint());
 
             try {
@@ -105,7 +105,7 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
 
         CreateDBProxyRequest request = new CreateDBProxyRequest()
                                                .withAuth(userAuthConfig)
-                                               .withDBProxyName(model.getDbProxyName())
+                                               .withDBProxyName(model.getDBProxyName())
                                                .withDebugLogging(model.getDebugLogging())
                                                .withEngineFamily(model.getEngineFamily())
                                                .withIdleClientTimeout(model.getIdleClientTimeout())

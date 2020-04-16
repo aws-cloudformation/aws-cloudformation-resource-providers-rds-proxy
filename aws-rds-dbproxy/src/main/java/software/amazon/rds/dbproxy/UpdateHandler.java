@@ -180,10 +180,10 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
 
         ModifyDBProxyRequest request = new ModifyDBProxyRequest()
                                                .withAuth(userAuthConfig)
-                                               .withDBProxyName(oldModel.getDbProxyName())
+                                               .withDBProxyName(oldModel.getDBProxyName())
                                                .withDebugLogging(newModel.getDebugLogging())
                                                .withIdleClientTimeout(newModel.getIdleClientTimeout())
-                                               .withNewDBProxyName(newModel.getDbProxyName())
+                                               .withNewDBProxyName(newModel.getDBProxyName())
                                                .withRequireTLS(newModel.getRequireTLS())
                                                .withRoleArn(newModel.getRoleArn())
                                                .withSecurityGroups(newModel.getVpcSecurityGroupIds());
@@ -197,7 +197,7 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
             }
         } catch (DBProxyNotFoundException e) {
             throw new software.amazon.cloudformation.exceptions.ResourceNotFoundException(ResourceModel.TYPE_NAME,
-                                                                                          Objects.toString(oldModel.getDbProxyName()));
+                                                                                          Objects.toString(oldModel.getDBProxyName()));
         }
     }
 

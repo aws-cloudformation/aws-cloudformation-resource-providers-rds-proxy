@@ -50,7 +50,7 @@ public class DeleteHandler extends BaseHandler<CallbackContext> {
                            .resourceModel(model)
                            .status(OperationStatus.IN_PROGRESS)
                            .callbackContext(CallbackContext.builder()
-                                                           .proxy(deleteProxy(model.getDbProxyName()))
+                                                           .proxy(deleteProxy(model.getDBProxyName()))
                                                            .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
                                                            .build())
                            .build();
@@ -70,7 +70,7 @@ public class DeleteHandler extends BaseHandler<CallbackContext> {
                            .status(OperationStatus.IN_PROGRESS)
                            .callbackContext(CallbackContext.builder()
                                                            .proxy(callbackContext.getProxy())
-                                                           .deleted(!doesProxyExist(model.getDbProxyName()))
+                                                           .deleted(!doesProxyExist(model.getDBProxyName()))
                                                            .stabilizationRetriesRemaining(callbackContext.getStabilizationRetriesRemaining() - 1)
                                                            .build())
                            .build();

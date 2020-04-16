@@ -67,7 +67,7 @@ public class ReadHandlerTest {
                 .injectCredentialsAndInvoke(eq(describeRequest), any());
 
 
-        final ResourceModel model = ResourceModel.builder().dbProxyName(PROXY_NAME).targetGroupName(customName).build();
+        final ResourceModel model = ResourceModel.builder().dBProxyName(PROXY_NAME).targetGroupName(customName).build();
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                                                                       .desiredResourceState(model)
@@ -106,7 +106,7 @@ public class ReadHandlerTest {
                 .injectCredentialsAndInvoke(eq(describeRequest), any());
 
 
-        final ResourceModel model = ResourceModel.builder().dbProxyName(PROXY_NAME).build();
+        final ResourceModel model = ResourceModel.builder().dBProxyName(PROXY_NAME).build();
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                                                                       .desiredResourceState(model)
@@ -132,7 +132,7 @@ public class ReadHandlerTest {
         doReturn(new DescribeDBProxyTargetGroupsResult())
                 .when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetGroupsRequest.class), any());
 
-        final ResourceModel model = ResourceModel.builder().dbProxyName("proxy1").build();
+        final ResourceModel model = ResourceModel.builder().dBProxyName("proxy1").build();
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                                                                       .desiredResourceState(model)

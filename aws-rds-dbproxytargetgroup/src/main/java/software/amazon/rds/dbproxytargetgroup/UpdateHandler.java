@@ -23,7 +23,6 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 public class UpdateHandler extends BaseHandler<CallbackContext> {
     private AmazonWebServicesClientProxy clientProxy;
     private AmazonRDS rdsClient;
-    private Logger log;
 
     private static final String TIMED_OUT_MESSAGE = "Timed out waiting for ProxyTargetGroup to finish modification.";
 
@@ -39,7 +38,6 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
 
         clientProxy = proxy;
         rdsClient = AmazonRDSClientBuilder.defaultClient();
-        log = logger;
 
         final CallbackContext currentContext = Optional.ofNullable(callbackContext)
                                                        .orElse(CallbackContext.builder()
@@ -170,7 +168,6 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
                                                                     .withTargetGroupName(newModel.getTargetGroupName())
                                                                     .withDBClusterIdentifiers(clustersToRemove)
                                                                     .withDBInstanceIdentifiers(instancesToRemove);
-        log.log("Deregister Request: " + deregisterRequest);
         clientProxy.injectCredentialsAndInvoke(deregisterRequest, rdsClient::deregisterDBProxyTargets);
         return true;
     }

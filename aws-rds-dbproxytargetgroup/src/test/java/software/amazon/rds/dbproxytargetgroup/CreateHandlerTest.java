@@ -221,37 +221,6 @@ public class CreateHandlerTest {
     }
 
     @Test
-    public void testProxyState() {
-        DBProxy dbProxy = new DBProxy().withStatus("available");
-        doReturn(new DescribeDBProxiesResult().withDBProxies(dbProxy)).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class), any());
-
-        final CreateHandler handler = new CreateHandler();
-        ImmutableList<String> clusterId = ImmutableList.of("clusterId");
-        final ResourceModel model = ResourceModel.builder().dBClusterIdentifiers(clusterId).build();
-
-        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                                                                      .desiredResourceState(model)
-                                                                      .build();
-
-        final ProgressEvent<ResourceModel, CallbackContext> response
-                = handler.handleRequest(proxy, request, null, logger);
-
-        final CallbackContext desiredOutputContext = CallbackContext.builder()
-                                                                    .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES - 1)
-                                                                    .proxy(dbProxy)
-                                                                    .build();
-
-        assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
-        assertThat(response.getCallbackContext()).isEqualToComparingFieldByField(desiredOutputContext);
-        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
-        assertThat(response.getResourceModel()).isEqualTo(request.getDesiredResourceState());
-        assertThat(response.getResourceModels()).isNull();
-        assertThat(response.getMessage()).isNull();
-        assertThat(response.getErrorCode()).isNull();
-    }
-
-    @Test
     public void testStabilizationTimeout() {
         final CreateHandler handler = new CreateHandler();
 

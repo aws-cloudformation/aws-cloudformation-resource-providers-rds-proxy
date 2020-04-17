@@ -26,7 +26,6 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
 
     private AmazonWebServicesClientProxy clientProxy;
     private AmazonRDS rdsClient;
-    private Logger log;
 
     @Override
     public ProgressEvent<ResourceModel, CallbackContext> handleRequest(
@@ -38,7 +37,6 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
 
         clientProxy = proxy;
         rdsClient = AmazonRDSClientBuilder.defaultClient();
-        log = logger;
 
         final CallbackContext currentContext = Optional.ofNullable(callbackContext)
                                                        .orElse(CallbackContext.builder()
@@ -123,16 +121,12 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
     }
 
     private List<DBProxyTarget> registerDefaultTarget(ResourceModel model) {
-        log.log("Starting registration");
         List<String> newClusters = Utility.getClusters(model);
         List<String> newInstances = Utility.getInstances(model);
-        log.log("Starting registration" + newClusters + " " + newInstances);
 
         if (newClusters.size() == 0 && newInstances.size() == 0) {
             return new ArrayList<>();
         }
-
-        log.log("We have things");
 
         RegisterDBProxyTargetsRequest registerRequest = new RegisterDBProxyTargetsRequest()
                                                                 .withDBProxyName(model.getDBProxyName())
@@ -140,7 +134,6 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
                                                                 .withDBClusterIdentifiers(newClusters)
                                                                 .withDBInstanceIdentifiers(newInstances);
 
-        log.log("Registration requests " +registerRequest);
         return clientProxy.injectCredentialsAndInvoke(registerRequest, rdsClient::registerDBProxyTargets).getDBProxyTargets();
     }
 

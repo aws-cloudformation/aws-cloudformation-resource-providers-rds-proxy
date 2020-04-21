@@ -7,11 +7,13 @@ import java.util.Optional;
 import com.amazonaws.services.rds.AmazonRDS;
 import com.amazonaws.services.rds.AmazonRDSClientBuilder;
 import com.amazonaws.services.rds.model.AmazonRDSException;
+import com.amazonaws.services.rds.model.DBProxyNotFoundException;
 import com.amazonaws.services.rds.model.DBProxyTarget;
 import com.amazonaws.services.rds.model.DeregisterDBProxyTargetsRequest;
 import com.amazonaws.services.rds.model.DescribeDBProxyTargetGroupsRequest;
 import com.amazonaws.services.rds.model.DescribeDBProxyTargetsRequest;
 import com.amazonaws.services.rds.model.DescribeDBProxyTargetsResult;
+import com.amazonaws.services.rds.model.InvalidDBProxyStateException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.OperationStatus;
@@ -50,11 +52,12 @@ public class DeleteHandler extends BaseHandler<CallbackContext> {
                                                                                  CallbackContext callbackContext) {
 
         if (!callbackContext.isTargetsDeregistered()) {
+            boolean deregistered = deregisterOldTargetsHelper(model);
             return ProgressEvent.<ResourceModel, CallbackContext>builder()
                            .resourceModel(model)
                            .status(OperationStatus.IN_PROGRESS)
                            .callbackContext(CallbackContext.builder()
-                                                           .targetsDeregistered(deregisterOldTargets(model))
+                                                           .targetsDeregistered(deregistered)
                                                            .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
                                                            .build())
                            .build();
@@ -64,6 +67,21 @@ public class DeleteHandler extends BaseHandler<CallbackContext> {
                        .resourceModel(model)
                        .status(OperationStatus.SUCCESS)
                        .build();
+    }
+
+    private boolean deregisterOldTargetsHelper(ResourceModel model) {
+        try {
+            return deregisterOldTargets(model);
+        } catch (DBProxyNotFoundException e) {
+            // Proxy is already deleted, no need to deregister
+            return true;
+        } catch (InvalidDBProxyStateException e) {
+            if (e.getMessage().contains("DELETING")) {
+                // Proxy is deleting, no need to deregister
+                return true;
+            }
+            throw e;
+        }
     }
 
     private boolean deregisterOldTargets(ResourceModel model) {

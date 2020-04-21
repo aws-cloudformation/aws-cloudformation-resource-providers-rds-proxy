@@ -8,6 +8,7 @@ import com.amazonaws.services.rds.AmazonRDS;
 import com.amazonaws.services.rds.AmazonRDSClientBuilder;
 import com.amazonaws.services.rds.model.ConnectionPoolConfiguration;
 import com.amazonaws.services.rds.model.DBProxy;
+import com.amazonaws.services.rds.model.DBProxyNotFoundException;
 import com.amazonaws.services.rds.model.DBProxyTarget;
 import com.amazonaws.services.rds.model.DBProxyTargetGroup;
 import com.amazonaws.services.rds.model.DescribeDBProxiesRequest;
@@ -56,41 +57,58 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
             throw new RuntimeException(TIMED_OUT_MESSAGE);
         }
 
-        if (callbackContext.getTargetGroupStatus() == null) {
-            // If proxy is in the available state then modify the target group settings
-            DBProxyTargetGroup targetGroupSettings = modifyProxyTargetGroup(model);
-            return ProgressEvent.<ResourceModel, CallbackContext>builder()
-                           .resourceModel(model)
-                           .status(OperationStatus.IN_PROGRESS)
-                           .callbackContext(CallbackContext.builder()
-                                                           .proxy(proxyStateSoFar)
-                                                           .targetGroupStatus(targetGroupSettings)
-                                                           .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
-                                                           .build())
-                           .build();
-
-        } else {
-            model.setTargetGroupArn(callbackContext.getTargetGroupStatus().getTargetGroupArn());
-            if (callbackContext.getTargets() == null) {
-                //If targets have not been setup, register them
-                List<DBProxyTarget> targets = registerDefaultTarget(model);
+        if (proxyStateSoFar != null && !proxyStateSoFar.getStatus().equals(Constants.DELETING_PROXY_STATE)) {
+            if (callbackContext.getTargetGroupStatus() == null) {
+                // If proxy is in the available state then modify the target group settings
+                DBProxyTargetGroup targetGroupSettings = modifyProxyTargetGroup(model);
                 return ProgressEvent.<ResourceModel, CallbackContext>builder()
                                .resourceModel(model)
                                .status(OperationStatus.IN_PROGRESS)
                                .callbackContext(CallbackContext.builder()
                                                                .proxy(proxyStateSoFar)
-                                                               .targetGroupStatus(callbackContext.getTargetGroupStatus())
-                                                               .targets(targets)
+                                                               .targetGroupStatus(targetGroupSettings)
                                                                .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
                                                                .build())
                                .build();
+
             } else {
-                //All setup has been completed
-                return ProgressEvent.<ResourceModel, CallbackContext>builder()
-                               .resourceModel(model)
-                               .status(OperationStatus.SUCCESS)
-                               .build();
+                model.setTargetGroupArn(callbackContext.getTargetGroupStatus().getTargetGroupArn());
+                if (callbackContext.getTargets() == null) {
+                    //If targets have not been setup, register them
+                    List<DBProxyTarget> targets = registerDefaultTarget(model);
+                    return ProgressEvent.<ResourceModel, CallbackContext>builder()
+                                   .resourceModel(model)
+                                   .status(OperationStatus.IN_PROGRESS)
+                                   .callbackContext(CallbackContext.builder()
+                                                                   .proxy(proxyStateSoFar)
+                                                                   .targetGroupStatus(callbackContext.getTargetGroupStatus())
+                                                                   .targets(targets)
+                                                                   .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
+                                                                   .build())
+                                   .build();
+                } else {
+                    //All setup has been completed
+                    return ProgressEvent.<ResourceModel, CallbackContext>builder()
+                                   .resourceModel(model)
+                                   .status(OperationStatus.SUCCESS)
+                                   .build();
+                }
             }
+        } else {
+            // Wait for proxy to be in active state
+            try {
+                Thread.sleep(Constants.POLL_RETRY_DELAY_IN_MS);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            return ProgressEvent.<ResourceModel, CallbackContext>builder()
+                           .resourceModel(model)
+                           .status(OperationStatus.IN_PROGRESS)
+                           .callbackContext(CallbackContext.builder()
+                                                           .proxy(describeProxyStatus(model.getDBProxyName()))
+                                                           .stabilizationRetriesRemaining(callbackContext.getStabilizationRetriesRemaining() - 1)
+                                                           .build())
+                           .build();
         }
     }
 
@@ -142,10 +160,15 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
         DescribeDBProxiesResult describeDBProxiesResult;
 
         describeDBProxiesRequest = new DescribeDBProxiesRequest().withDBProxyName(proxyName);
-        describeDBProxiesResult = clientProxy.injectCredentialsAndInvoke(describeDBProxiesRequest, rdsClient::describeDBProxies);
-        return describeDBProxiesResult.getDBProxies()
-                                      .stream()
-                                      .findFirst()
-                                      .orElse(new DBProxy());
+        try {
+            describeDBProxiesResult = clientProxy.injectCredentialsAndInvoke(describeDBProxiesRequest, rdsClient::describeDBProxies);
+            return describeDBProxiesResult.getDBProxies()
+                                          .stream()
+                                          .findFirst()
+                                          .orElse(new DBProxy());
+        } catch (DBProxyNotFoundException e) {
+            // Proxy not found, possible out of order creation, will retry
+            return null;
+        }
     }
 }

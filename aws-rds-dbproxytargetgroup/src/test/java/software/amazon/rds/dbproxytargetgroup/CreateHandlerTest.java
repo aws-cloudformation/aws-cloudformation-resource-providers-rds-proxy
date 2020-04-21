@@ -2,6 +2,7 @@ package software.amazon.rds.dbproxytargetgroup;
 
 import com.amazonaws.services.rds.model.ConnectionPoolConfigurationInfo;
 import com.amazonaws.services.rds.model.DBProxy;
+import com.amazonaws.services.rds.model.DBProxyNotFoundException;
 import com.amazonaws.services.rds.model.DBProxyTarget;
 import com.amazonaws.services.rds.model.DBProxyTargetGroup;
 import com.amazonaws.services.rds.model.DescribeDBProxiesRequest;
@@ -27,6 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 
 import java.util.ArrayList;
@@ -179,7 +181,7 @@ public class CreateHandlerTest {
     }
 
     @Test
-    public void testRegistration(){
+    public void testRegistration_Available(){
         DBProxy dbProxy = new DBProxy().withStatus("available");
 
         DBProxyTargetGroup dbProxyTargetGroup = new DBProxyTargetGroup();
@@ -209,6 +211,114 @@ public class CreateHandlerTest {
                                                                     .proxy(dbProxy)
                                                                     .targetGroupStatus(dbProxyTargetGroup)
                                                                     .targets(ImmutableList.of(dbProxyTarget))
+                                                                    .build();
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
+        assertThat(response.getCallbackContext()).isEqualToComparingFieldByField(desiredOutputContext);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModel()).isEqualTo(request.getDesiredResourceState());
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+    }
+
+    @Test
+    public void testRegistration_Creating(){
+        DBProxy dbProxy = new DBProxy().withStatus("creating");
+
+        DBProxyTargetGroup dbProxyTargetGroup = new DBProxyTargetGroup();
+        DBProxyTarget dbProxyTarget = new DBProxyTarget();
+        doReturn(new RegisterDBProxyTargetsResult().withDBProxyTargets(dbProxyTarget)).when(proxy).injectCredentialsAndInvoke(any(RegisterDBProxyTargetsRequest.class), any());
+        final CreateHandler handler = new CreateHandler();
+
+        ImmutableList<String> clusterId = ImmutableList.of("clusterId");
+
+        final ResourceModel model = ResourceModel.builder().dBClusterIdentifiers(clusterId).build();
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                                                                      .desiredResourceState(model)
+                                                                      .build();
+
+        final CallbackContext context = CallbackContext.builder()
+                                                       .proxy(dbProxy)
+                                                       .targetGroupStatus(dbProxyTargetGroup)
+                                                       .stabilizationRetriesRemaining(1)
+                                                       .build();
+
+        final ProgressEvent<ResourceModel, CallbackContext> response
+                = handler.handleRequest(proxy, request, context, logger);
+
+        final CallbackContext desiredOutputContext = CallbackContext.builder()
+                                                                    .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
+                                                                    .proxy(dbProxy)
+                                                                    .targetGroupStatus(dbProxyTargetGroup)
+                                                                    .targets(ImmutableList.of(dbProxyTarget))
+                                                                    .build();
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
+        assertThat(response.getCallbackContext()).isEqualToComparingFieldByField(desiredOutputContext);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModel()).isEqualTo(request.getDesiredResourceState());
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+    }
+
+    @Test
+    public void testNotCreated(){
+        DBProxy dbProxy = new DBProxy().withStatus("creating");
+        doReturn(new DescribeDBProxiesResult().withDBProxies(dbProxy)).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class), any());
+        final CreateHandler handler = new CreateHandler();
+
+        ImmutableList<String> clusterId = ImmutableList.of("clusterId");
+
+        final ResourceModel model = ResourceModel.builder().dBClusterIdentifiers(clusterId).build();
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                                                                      .desiredResourceState(model)
+                                                                      .build();
+
+        final CallbackContext context = CallbackContext.builder()
+                                                       .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
+                                                       .build();
+
+        final ProgressEvent<ResourceModel, CallbackContext> response
+                = handler.handleRequest(proxy, request, context, logger);
+
+        final CallbackContext desiredOutputContext = CallbackContext.builder()
+                                                                    .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES - 1)
+                                                                    .proxy(dbProxy)
+                                                                    .build();
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
+        assertThat(response.getCallbackContext()).isEqualToComparingFieldByField(desiredOutputContext);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModel()).isEqualTo(request.getDesiredResourceState());
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+    }
+
+    @Test
+    public void testProxyDoesNotExist() {
+        doThrow(new DBProxyNotFoundException("")).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class), any());
+        final CreateHandler handler = new CreateHandler();
+
+        final ResourceModel model = ResourceModel.builder().build();
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                                                                      .desiredResourceState(model)
+                                                                      .build();
+
+        final CallbackContext context = CallbackContext.builder()
+                                                       .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
+                                                       .build();
+
+        final ProgressEvent<ResourceModel, CallbackContext> response
+                = handler.handleRequest(proxy, request, context, logger);
+
+        final CallbackContext desiredOutputContext = CallbackContext.builder()
+                                                                    .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES - 1)
                                                                     .build();
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);

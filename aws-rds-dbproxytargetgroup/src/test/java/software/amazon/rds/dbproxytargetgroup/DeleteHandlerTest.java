@@ -3,6 +3,7 @@ package software.amazon.rds.dbproxytargetgroup;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -16,10 +17,12 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.amazonaws.services.rds.model.DBProxyNotFoundException;
 import com.amazonaws.services.rds.model.DBProxyTarget;
 import com.amazonaws.services.rds.model.DeregisterDBProxyTargetsRequest;
 import com.amazonaws.services.rds.model.DescribeDBProxyTargetsRequest;
 import com.amazonaws.services.rds.model.DescribeDBProxyTargetsResult;
+import com.amazonaws.services.rds.model.InvalidDBProxyStateException;
 import com.google.common.collect.ImmutableList;
 import jdk.nashorn.internal.ir.annotations.Immutable;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -192,5 +195,70 @@ public class DeleteHandlerTest {
         DeregisterDBProxyTargetsRequest deregisterDBProxyTargetsRequest = captor.getValue();
         assertThat(deregisterDBProxyTargetsRequest.getDBClusterIdentifiers()).isEqualTo(ImmutableList.of(clusterName));
         assertThat(deregisterDBProxyTargetsRequest.getDBInstanceIdentifiers().size()).isEqualTo(0);
+    }
+
+    @Test
+    public void handleRequest_DeregisterProxyDeleted() {
+        doThrow(new DBProxyNotFoundException("")).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class), any());
+
+        final DeleteHandler handler = new DeleteHandler();
+
+        final ResourceModel model = ResourceModel.builder().build();
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                                                                      .desiredResourceState(model)
+                                                                      .build();
+
+        final CallbackContext context = CallbackContext.builder()
+                                                       .stabilizationRetriesRemaining(1)
+                                                       .build();
+
+        final CallbackContext desiredOutputContext = CallbackContext.builder()
+                                                                    .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
+                                                                    .targetsDeregistered(true)
+                                                                    .build();
+
+        final ProgressEvent<ResourceModel, CallbackContext> response
+                = handler.handleRequest(proxy, request, context, logger);
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
+        assertThat(response.getCallbackContext()).isEqualToComparingFieldByField(desiredOutputContext);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModel()).isEqualTo(request.getDesiredResourceState());
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+    }
+    @Test
+    public void handleRequest_DeregisterProxyDeleting() {
+        doThrow(new InvalidDBProxyStateException("DB Proxy prx-123 is in an unsupported state - DELETING, needs to be in [ACTIVE]")).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class), any());
+
+        final DeleteHandler handler = new DeleteHandler();
+
+        final ResourceModel model = ResourceModel.builder().build();
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                                                                      .desiredResourceState(model)
+                                                                      .build();
+
+        final CallbackContext context = CallbackContext.builder()
+                                                       .stabilizationRetriesRemaining(1)
+                                                       .build();
+
+        final CallbackContext desiredOutputContext = CallbackContext.builder()
+                                                                    .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
+                                                                    .targetsDeregistered(true)
+                                                                    .build();
+
+        final ProgressEvent<ResourceModel, CallbackContext> response
+                = handler.handleRequest(proxy, request, context, logger);
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
+        assertThat(response.getCallbackContext()).isEqualToComparingFieldByField(desiredOutputContext);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModel()).isEqualTo(request.getDesiredResourceState());
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
     }
 }

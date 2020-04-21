@@ -76,8 +76,11 @@ public class DeleteHandler extends BaseHandler<CallbackContext> {
             // Proxy is already deleted, no need to deregister
             return true;
         } catch (InvalidDBProxyStateException e) {
-            // Proxy is deleting, no need to deregister
-            return true;
+            if (e.getMessage().contains("DELETING")) {
+                // Proxy is deleting, no need to deregister
+                return true;
+            }
+            throw e;
         }
     }
 

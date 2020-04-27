@@ -183,7 +183,6 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
                                                .withDBProxyName(oldModel.getDBProxyName())
                                                .withDebugLogging(newModel.getDebugLogging())
                                                .withIdleClientTimeout(newModel.getIdleClientTimeout())
-                                               .withNewDBProxyName(newModel.getDBProxyName())
                                                .withRequireTLS(newModel.getRequireTLS())
                                                .withRoleArn(newModel.getRoleArn())
                                                .withSecurityGroups(newModel.getVpcSecurityGroupIds());

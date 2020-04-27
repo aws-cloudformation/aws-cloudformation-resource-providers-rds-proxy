@@ -134,11 +134,12 @@
     "/properties/Endpoint"
   ],
   "createOnlyProperties": [
+    "/properties/DBProxyName",
     "/properties/EngineFamily",
     "/properties/VpcSubnetIds"
   ],
   "primaryIdentifier": [
-    "/properties/DBProxyArn"
+    "/properties/DBProxyName"
   ],
   "handlers": {
     "create": {

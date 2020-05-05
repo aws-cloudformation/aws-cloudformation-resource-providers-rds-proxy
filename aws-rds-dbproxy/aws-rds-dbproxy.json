@@ -159,7 +159,8 @@
       "permissions": [
         "rds:ModifyDBProxy",
         "rds:AddTagsToResource",
-        "rds:RemoveTagsFromResource"
+        "rds:RemoveTagsFromResource",
+        "iam:PassRole"
       ]
     },
     "delete": {

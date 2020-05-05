@@ -82,7 +82,8 @@
       "description": "The kinds of databases that the proxy can connect to.",
       "type": "string",
       "enum": [
-        "MYSQL"
+        "MYSQL",
+        "POSTGRESQL"
       ]
     },
     "IdleClientTimeout": {

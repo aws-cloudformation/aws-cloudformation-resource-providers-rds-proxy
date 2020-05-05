@@ -82,7 +82,8 @@
       "description": "The kinds of databases that the proxy can connect to.",
       "type": "string",
       "enum": [
-        "MYSQL"
+        "MYSQL",
+        "POSTGRESQL"
       ]
     },
     "IdleClientTimeout": {
@@ -158,7 +159,8 @@
       "permissions": [
         "rds:ModifyDBProxy",
         "rds:AddTagsToResource",
-        "rds:RemoveTagsFromResource"
+        "rds:RemoveTagsFromResource",
+        "iam:PassRole"
       ]
     },
     "delete": {

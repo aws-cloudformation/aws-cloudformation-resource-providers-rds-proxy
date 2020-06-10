@@ -1,5 +1,7 @@
 package software.amazon.rds.dbproxytargetgroup;
 
+import static software.amazon.rds.dbproxytargetgroup.Constants.AVAILABLE_STATE;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -14,6 +16,8 @@ import com.amazonaws.services.rds.model.DBProxyTargetGroup;
 import com.amazonaws.services.rds.model.DescribeDBProxiesRequest;
 import com.amazonaws.services.rds.model.DescribeDBProxiesResult;
 import com.amazonaws.services.rds.model.DescribeDBProxyTargetGroupsRequest;
+import com.amazonaws.services.rds.model.DescribeDBProxyTargetsRequest;
+import com.amazonaws.services.rds.model.DescribeDBProxyTargetsResult;
 import com.amazonaws.services.rds.model.ModifyDBProxyTargetGroupRequest;
 import com.amazonaws.services.rds.model.RegisterDBProxyTargetsRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
@@ -87,11 +91,27 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
                                                                    .build())
                                    .build();
                 } else {
-                    //All setup has been completed
-                    return ProgressEvent.<ResourceModel, CallbackContext>builder()
-                                   .resourceModel(model)
-                                   .status(OperationStatus.SUCCESS)
-                                   .build();
+                    if (!callbackContext.isAllTargetsHealthy()) {
+                        boolean allTargetsHealthy = checkTargetHealth(model);
+
+                        return ProgressEvent.<ResourceModel, CallbackContext>builder()
+                                       .resourceModel(model)
+                                       .status(OperationStatus.IN_PROGRESS)
+                                       .callbackContext(CallbackContext.builder()
+                                           .proxy(proxyStateSoFar)
+                                           .targetGroupStatus(callbackContext.getTargetGroupStatus())
+                                           .targets(callbackContext.getTargets())
+                                           .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
+                                           .allTargetsHealthy(allTargetsHealthy)
+                                           .build())
+                                       .build();
+                    } else {
+                        //All setup has been completed
+                        return ProgressEvent.<ResourceModel, CallbackContext>builder()
+                                       .resourceModel(model)
+                                       .status(OperationStatus.SUCCESS)
+                                       .build();
+                    }
                 }
             }
         } else {
@@ -153,6 +173,21 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
                                                                 .withDBInstanceIdentifiers(newInstances);
 
         return clientProxy.injectCredentialsAndInvoke(registerRequest, rdsClient::registerDBProxyTargets).getDBProxyTargets();
+    }
+
+    private boolean checkTargetHealth(ResourceModel model) {
+        DescribeDBProxyTargetsRequest describeDBProxyTargetsRequest = new DescribeDBProxyTargetsRequest()
+                                                                              .withDBProxyName(model.getDBProxyName())
+                                                                              .withTargetGroupName(model.getTargetGroupName());
+
+        DescribeDBProxyTargetsResult describeResult = clientProxy.injectCredentialsAndInvoke(describeDBProxyTargetsRequest, rdsClient::describeDBProxyTargets);
+        for (DBProxyTarget target:describeResult.getTargets()) {
+            if (!target.getTargetHealth().getState().equalsIgnoreCase(AVAILABLE_STATE)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private DBProxy describeProxyStatus(String proxyName) {

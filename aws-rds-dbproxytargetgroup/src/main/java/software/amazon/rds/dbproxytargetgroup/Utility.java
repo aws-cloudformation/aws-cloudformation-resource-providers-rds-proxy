@@ -1,5 +1,8 @@
 package software.amazon.rds.dbproxytargetgroup;
 
+import static software.amazon.rds.dbproxytargetgroup.Constants.AVAILABLE_STATE;
+import static software.amazon.rds.dbproxytargetgroup.Constants.TRACKED_CLUSTER;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -9,7 +12,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.amazonaws.services.rds.model.ConnectionPoolConfigurationInfo;
+import com.amazonaws.services.rds.model.DBProxyTarget;
 import com.amazonaws.services.rds.model.DBProxyTargetGroup;
+import com.amazonaws.services.rds.model.DescribeDBProxyTargetsResult;
 
 public class Utility {
     public static ResourceModel resultToModel(DBProxyTargetGroup targetGroup){
@@ -38,5 +43,23 @@ public class Utility {
 
     static List<String> getInstances(ResourceModel model) {
         return Optional.ofNullable(model.getDBInstanceIdentifiers()).orElse(new ArrayList<>());
+    }
+
+    static boolean validateHealth(DescribeDBProxyTargetsResult describeResult) {
+        for (DBProxyTarget target:describeResult.getTargets()) {
+            if (target.getType().equalsIgnoreCase(TRACKED_CLUSTER)){
+                if (target.getTargetHealth() != null
+                    && target.getTargetHealth().getState() != null
+                    && !target.getTargetHealth().getState().equalsIgnoreCase(AVAILABLE_STATE)) {
+                    return false;
+                }
+            } else {
+                if (!target.getTargetHealth().getState().equalsIgnoreCase(AVAILABLE_STATE)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 }

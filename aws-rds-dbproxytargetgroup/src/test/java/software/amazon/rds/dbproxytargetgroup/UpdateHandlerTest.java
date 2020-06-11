@@ -337,6 +337,7 @@ public class UpdateHandlerTest {
 
         DBProxyTarget target = new DBProxyTarget()
                                        .withRdsResourceId("resourceId")
+                                       .withType("RDS_INSTANCE")
                                        .withTargetHealth(new TargetHealth().withState(Constants.AVAILABLE_STATE));
 
         doReturn(new DescribeDBProxyTargetsResult().withTargets(target)).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class), any());

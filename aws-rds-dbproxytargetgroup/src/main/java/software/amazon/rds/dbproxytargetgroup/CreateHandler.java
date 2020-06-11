@@ -1,6 +1,6 @@
 package software.amazon.rds.dbproxytargetgroup;
 
-import static software.amazon.rds.dbproxytargetgroup.Constants.AVAILABLE_STATE;
+import static software.amazon.rds.dbproxytargetgroup.Utility.validateHealth;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -181,13 +181,7 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
                                                                               .withTargetGroupName(model.getTargetGroupName());
 
         DescribeDBProxyTargetsResult describeResult = clientProxy.injectCredentialsAndInvoke(describeDBProxyTargetsRequest, rdsClient::describeDBProxyTargets);
-        for (DBProxyTarget target:describeResult.getTargets()) {
-            if (!target.getTargetHealth().getState().equalsIgnoreCase(AVAILABLE_STATE)) {
-                return false;
-            }
-        }
-
-        return true;
+        return validateHealth(describeResult);
     }
 
     private DBProxy describeProxyStatus(String proxyName) {

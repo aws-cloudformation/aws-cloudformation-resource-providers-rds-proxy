@@ -190,10 +190,63 @@ public class CreateHandlerTest {
         List<DBProxyTarget> proxyTargets = new ArrayList<>();
         DBProxyTarget target = new DBProxyTarget()
                                        .withRdsResourceId("resourceId")
+                                       .withType("RDS_INSTANCE")
                                        .withTargetHealth(new TargetHealth().withState(Constants.AVAILABLE_STATE));
 
         doReturn(new DescribeDBProxyTargetsResult().withTargets(target)).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class), any());
 
+
+        final CreateHandler handler = new CreateHandler();
+
+        final ResourceModel model = ResourceModel.builder().build();
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                                                                      .desiredResourceState(model)
+                                                                      .build();
+
+        final CallbackContext context = CallbackContext.builder()
+                                                       .proxy(dbProxy)
+                                                       .targetGroupStatus(dbProxyTargetGroup)
+                                                       .targets(proxyTargets)
+                                                       .stabilizationRetriesRemaining(1)
+                                                       .build();
+
+        final ProgressEvent<ResourceModel, CallbackContext> response
+                = handler.handleRequest(proxy, request, context, logger);
+
+
+        final CallbackContext desiredOutputContext = CallbackContext.builder()
+                                                                    .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
+                                                                    .proxy(dbProxy)
+                                                                    .targetGroupStatus(dbProxyTargetGroup)
+                                                                    .targets(proxyTargets)
+                                                                    .allTargetsHealthy(true)
+                                                                    .build();
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
+        assertThat(response.getCallbackContext()).isEqualToComparingFieldByField(desiredOutputContext);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModel()).isEqualTo(request.getDesiredResourceState());
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+    }
+
+    @Test
+    public void testCheckTargetHealth_cluster() {
+        DBProxy dbProxy = new DBProxy().withStatus("available");
+        DBProxyTargetGroup dbProxyTargetGroup = new DBProxyTargetGroup();
+        List<DBProxyTarget> proxyTargets = new ArrayList<>();
+        DBProxyTarget target = new DBProxyTarget()
+                                       .withRdsResourceId("resourceId-c")
+                                       .withType("TRACKED_CLUSTER");
+
+        DBProxyTarget targetCluster = new DBProxyTarget()
+                                       .withRdsResourceId("resourceId-i")
+                                       .withType("RDS_INSTANCE")
+                                       .withTargetHealth(new TargetHealth().withState(Constants.AVAILABLE_STATE));
+
+        doReturn(new DescribeDBProxyTargetsResult().withTargets(target, targetCluster)).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class), any());
 
         final CreateHandler handler = new CreateHandler();
 

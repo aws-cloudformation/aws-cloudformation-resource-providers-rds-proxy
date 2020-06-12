@@ -18,6 +18,7 @@ public class CallbackContext {
     private DBProxy proxy;
     private DBProxyTargetGroup targetGroupStatus;
     private List<DBProxyTarget> targets;
+    private boolean allTargetsHealthy;
     private boolean targetsDeregistered;
 
     private Integer stabilizationRetriesRemaining;

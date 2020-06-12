@@ -8,10 +8,13 @@ import com.amazonaws.services.rds.model.DeregisterDBProxyTargetsRequest;
 import com.amazonaws.services.rds.model.DeregisterDBProxyTargetsResult;
 import com.amazonaws.services.rds.model.DescribeDBProxyTargetGroupsRequest;
 import com.amazonaws.services.rds.model.DescribeDBProxyTargetGroupsResult;
+import com.amazonaws.services.rds.model.DescribeDBProxyTargetsRequest;
+import com.amazonaws.services.rds.model.DescribeDBProxyTargetsResult;
 import com.amazonaws.services.rds.model.ModifyDBProxyTargetGroupRequest;
 import com.amazonaws.services.rds.model.ModifyDBProxyTargetGroupResult;
 import com.amazonaws.services.rds.model.RegisterDBProxyTargetsRequest;
 import com.amazonaws.services.rds.model.RegisterDBProxyTargetsResult;
+import com.amazonaws.services.rds.model.TargetHealth;
 import com.google.common.collect.ImmutableList;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
@@ -56,6 +59,7 @@ public class UpdateHandlerTest {
                                                        .targets(targetList)
                                                        .targetsDeregistered(true)
                                                        .stabilizationRetriesRemaining(1)
+                                                       .allTargetsHealthy(true)
                                                        .build();
 
         final UpdateHandler handler = new UpdateHandler();
@@ -315,6 +319,53 @@ public class UpdateHandlerTest {
                                                                     .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
                                                                     .targetGroupStatus(dbProxyTargetGroup)
                                                                     .targetsDeregistered(true)
+                                                                    .build();
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
+        assertThat(response.getCallbackContext()).isEqualToComparingFieldByField(desiredOutputContext);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).containsOnly(request.getDesiredResourceState(), request.getPreviousResourceState());
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+    }
+
+    @Test
+    public void testTargetHealth() {
+        DBProxyTargetGroup defaultTargetGroup = new DBProxyTargetGroup();
+        DBProxyTarget dbProxyTarget = new DBProxyTarget().withRdsResourceId("resourceId");
+        List<DBProxyTarget> targetList = ImmutableList.of(dbProxyTarget);
+
+        DBProxyTarget target = new DBProxyTarget()
+                                       .withRdsResourceId("resourceId")
+                                       .withType("RDS_INSTANCE")
+                                       .withTargetHealth(new TargetHealth().withState(Constants.AVAILABLE_STATE));
+
+        doReturn(new DescribeDBProxyTargetsResult().withTargets(target)).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class), any());
+        final CallbackContext context = CallbackContext.builder()
+                                                       .targetGroupStatus(defaultTargetGroup)
+                                                       .targets(targetList)
+                                                       .targetsDeregistered(true)
+                                                       .stabilizationRetriesRemaining(1)
+                                                       .build();
+
+        final UpdateHandler handler = new UpdateHandler();
+
+        final ResourceModel model = ResourceModel.builder().build();
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                                                                      .desiredResourceState(model)
+                                                                      .previousResourceState(model)
+                                                                      .build();
+
+        final ProgressEvent<ResourceModel, CallbackContext> response
+                = handler.handleRequest(proxy, request, context, logger);
+
+        final CallbackContext desiredOutputContext = CallbackContext.builder()
+                                                                    .stabilizationRetriesRemaining(0)
+                                                                    .targetGroupStatus(defaultTargetGroup)
+                                                                    .targetsDeregistered(true)
+                                                                    .targets(ImmutableList.of(dbProxyTarget))
+                                                                    .allTargetsHealthy(true)
                                                                     .build();
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);

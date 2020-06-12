@@ -1,5 +1,7 @@
 package software.amazon.rds.dbproxytargetgroup;
 
+import static software.amazon.rds.dbproxytargetgroup.Utility.validateHealth;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -11,6 +13,8 @@ import com.amazonaws.services.rds.model.DBProxyTarget;
 import com.amazonaws.services.rds.model.DBProxyTargetGroup;
 import com.amazonaws.services.rds.model.DeregisterDBProxyTargetsRequest;
 import com.amazonaws.services.rds.model.DescribeDBProxyTargetGroupsRequest;
+import com.amazonaws.services.rds.model.DescribeDBProxyTargetsRequest;
+import com.amazonaws.services.rds.model.DescribeDBProxyTargetsResult;
 import com.amazonaws.services.rds.model.ModifyDBProxyTargetGroupRequest;
 import com.amazonaws.services.rds.model.RegisterDBProxyTargetsRequest;
 import com.google.common.collect.ImmutableList;
@@ -91,6 +95,22 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
                                                            .targets(registerNewTargets(oldModel, newModel))
                                                            .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
                                                            .build())
+                           .build();
+        }
+
+        if (!callbackContext.isAllTargetsHealthy()) {
+            boolean allTargetsHealthy = checkTargetHealth(newModel);
+
+            return ProgressEvent.<ResourceModel, CallbackContext>builder()
+                           .resourceModels(ImmutableList.of(oldModel, newModel))
+                           .status(OperationStatus.IN_PROGRESS)
+                           .callbackContext(CallbackContext.builder()
+                               .targetGroupStatus(callbackContext.getTargetGroupStatus())
+                               .targetsDeregistered(callbackContext.isTargetsDeregistered())
+                               .targets(callbackContext.getTargets())
+                               .stabilizationRetriesRemaining(callbackContext.getStabilizationRetriesRemaining() - 1)
+                               .allTargetsHealthy(allTargetsHealthy)
+                               .build())
                            .build();
         }
 
@@ -177,5 +197,14 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
             list1.removeAll(list2);
         }
         return list1;
+    }
+
+    private boolean checkTargetHealth(ResourceModel model) {
+        DescribeDBProxyTargetsRequest describeDBProxyTargetsRequest = new DescribeDBProxyTargetsRequest()
+                                                                              .withDBProxyName(model.getDBProxyName())
+                                                                              .withTargetGroupName(model.getTargetGroupName());
+
+        DescribeDBProxyTargetsResult describeResult = clientProxy.injectCredentialsAndInvoke(describeDBProxyTargetsRequest, rdsClient::describeDBProxyTargets);
+        return validateHealth(describeResult);
     }
 }

@@ -1,6 +1,7 @@
 package software.amazon.rds.dbproxytargetgroup;
 
 import static software.amazon.rds.dbproxytargetgroup.Constants.AVAILABLE_STATE;
+import static software.amazon.rds.dbproxytargetgroup.Constants.RDS_INSTANCE;
 import static software.amazon.rds.dbproxytargetgroup.Constants.TRACKED_CLUSTER;
 
 import java.util.ArrayList;
@@ -47,13 +48,15 @@ public class Utility {
 
     static boolean validateHealth(DescribeDBProxyTargetsResult describeResult) {
         for (DBProxyTarget target:describeResult.getTargets()) {
+            // Tracked cluster do not currently have their own health state, adding optional
+            // health checks for future proofing
             if (target.getType().equalsIgnoreCase(TRACKED_CLUSTER)){
                 if (target.getTargetHealth() != null
                     && target.getTargetHealth().getState() != null
                     && !target.getTargetHealth().getState().equalsIgnoreCase(AVAILABLE_STATE)) {
                     return false;
                 }
-            } else {
+            } else if (target.getType().equalsIgnoreCase(RDS_INSTANCE)){
                 if (!target.getTargetHealth().getState().equalsIgnoreCase(AVAILABLE_STATE)) {
                     return false;
                 }

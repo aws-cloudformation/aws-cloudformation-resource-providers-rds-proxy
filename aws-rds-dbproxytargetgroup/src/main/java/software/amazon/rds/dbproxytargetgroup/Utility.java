@@ -56,7 +56,9 @@ public class Utility {
                     && !target.getTargetHealth().getState().equalsIgnoreCase(AVAILABLE_STATE)) {
                     return false;
                 }
-            } else if (target.getType().equalsIgnoreCase(RDS_INSTANCE)){
+            }
+
+            if (target.getType().equalsIgnoreCase(RDS_INSTANCE)){
                 if (!target.getTargetHealth().getState().equalsIgnoreCase(AVAILABLE_STATE)) {
                     return false;
                 }

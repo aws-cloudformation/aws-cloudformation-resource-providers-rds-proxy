@@ -101,7 +101,7 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
                                            .proxy(proxyStateSoFar)
                                            .targetGroupStatus(callbackContext.getTargetGroupStatus())
                                            .targets(callbackContext.getTargets())
-                                           .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
+                                           .stabilizationRetriesRemaining(callbackContext.getStabilizationRetriesRemaining() - 1)
                                            .allTargetsHealthy(allTargetsHealthy)
                                            .build())
                                        .build();

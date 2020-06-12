@@ -216,7 +216,7 @@ public class CreateHandlerTest {
 
 
         final CallbackContext desiredOutputContext = CallbackContext.builder()
-                                                                    .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
+                                                                    .stabilizationRetriesRemaining(0)
                                                                     .proxy(dbProxy)
                                                                     .targetGroupStatus(dbProxyTargetGroup)
                                                                     .targets(proxyTargets)
@@ -268,7 +268,7 @@ public class CreateHandlerTest {
 
 
         final CallbackContext desiredOutputContext = CallbackContext.builder()
-                                                                    .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
+                                                                    .stabilizationRetriesRemaining(0)
                                                                     .proxy(dbProxy)
                                                                     .targetGroupStatus(dbProxyTargetGroup)
                                                                     .targets(proxyTargets)
@@ -311,7 +311,7 @@ public class CreateHandlerTest {
 
 
         final CallbackContext desiredOutputContext = CallbackContext.builder()
-                                                                    .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
+                                                                    .stabilizationRetriesRemaining(0)
                                                                     .proxy(dbProxy)
                                                                     .targetGroupStatus(dbProxyTargetGroup)
                                                                     .targets(proxyTargets)

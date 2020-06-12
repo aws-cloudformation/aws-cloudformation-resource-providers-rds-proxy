@@ -361,7 +361,7 @@ public class UpdateHandlerTest {
                 = handler.handleRequest(proxy, request, context, logger);
 
         final CallbackContext desiredOutputContext = CallbackContext.builder()
-                                                                    .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
+                                                                    .stabilizationRetriesRemaining(0)
                                                                     .targetGroupStatus(defaultTargetGroup)
                                                                     .targetsDeregistered(true)
                                                                     .targets(ImmutableList.of(dbProxyTarget))

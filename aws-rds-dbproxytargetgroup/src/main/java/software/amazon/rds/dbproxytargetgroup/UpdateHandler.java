@@ -108,7 +108,7 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
                                .targetGroupStatus(callbackContext.getTargetGroupStatus())
                                .targetsDeregistered(callbackContext.isTargetsDeregistered())
                                .targets(callbackContext.getTargets())
-                               .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
+                               .stabilizationRetriesRemaining(callbackContext.getStabilizationRetriesRemaining() - 1)
                                .allTargetsHealthy(allTargetsHealthy)
                                .build())
                            .build();

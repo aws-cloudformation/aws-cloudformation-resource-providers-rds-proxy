@@ -233,6 +233,103 @@ public class CreateHandlerTest {
     }
 
     @Test
+    public void testCheckTargetHealth_nullInstanceHealth() {
+        DBProxy dbProxy = new DBProxy().withStatus("available");
+        DBProxyTargetGroup dbProxyTargetGroup = new DBProxyTargetGroup();
+        List<DBProxyTarget> proxyTargets = new ArrayList<>();
+        DBProxyTarget target = new DBProxyTarget()
+                                       .withRdsResourceId("resourceId")
+                                       .withType("RDS_INSTANCE");
+
+        doReturn(new DescribeDBProxyTargetsResult().withTargets(target)).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class), any());
+
+
+        final CreateHandler handler = new CreateHandler();
+
+        final ResourceModel model = ResourceModel.builder().build();
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                                                                      .desiredResourceState(model)
+                                                                      .build();
+
+        final CallbackContext context = CallbackContext.builder()
+                                                       .proxy(dbProxy)
+                                                       .targetGroupStatus(dbProxyTargetGroup)
+                                                       .targets(proxyTargets)
+                                                       .stabilizationRetriesRemaining(1)
+                                                       .build();
+
+        final ProgressEvent<ResourceModel, CallbackContext> response
+                = handler.handleRequest(proxy, request, context, logger);
+
+
+        final CallbackContext desiredOutputContext = CallbackContext.builder()
+                                                                    .stabilizationRetriesRemaining(0)
+                                                                    .proxy(dbProxy)
+                                                                    .targetGroupStatus(dbProxyTargetGroup)
+                                                                    .targets(proxyTargets)
+                                                                    .allTargetsHealthy(false)
+                                                                    .build();
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
+        assertThat(response.getCallbackContext()).isEqualToComparingFieldByField(desiredOutputContext);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModel()).isEqualTo(request.getDesiredResourceState());
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+    }
+
+    @Test
+    public void testCheckTargetHealth_unhealthy() {
+        DBProxy dbProxy = new DBProxy().withStatus("available");
+        DBProxyTargetGroup dbProxyTargetGroup = new DBProxyTargetGroup();
+        List<DBProxyTarget> proxyTargets = new ArrayList<>();
+        DBProxyTarget target = new DBProxyTarget()
+                                       .withRdsResourceId("resourceId")
+                                       .withType("RDS_INSTANCE")
+                                       .withTargetHealth(new TargetHealth().withState("unhealthy"));
+
+        doReturn(new DescribeDBProxyTargetsResult().withTargets(target)).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class), any());
+
+
+        final CreateHandler handler = new CreateHandler();
+
+        final ResourceModel model = ResourceModel.builder().build();
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                                                                      .desiredResourceState(model)
+                                                                      .build();
+
+        final CallbackContext context = CallbackContext.builder()
+                                                       .proxy(dbProxy)
+                                                       .targetGroupStatus(dbProxyTargetGroup)
+                                                       .targets(proxyTargets)
+                                                       .stabilizationRetriesRemaining(1)
+                                                       .build();
+
+        final ProgressEvent<ResourceModel, CallbackContext> response
+                = handler.handleRequest(proxy, request, context, logger);
+
+
+        final CallbackContext desiredOutputContext = CallbackContext.builder()
+                                                                    .stabilizationRetriesRemaining(0)
+                                                                    .proxy(dbProxy)
+                                                                    .targetGroupStatus(dbProxyTargetGroup)
+                                                                    .targets(proxyTargets)
+                                                                    .allTargetsHealthy(false)
+                                                                    .build();
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
+        assertThat(response.getCallbackContext()).isEqualToComparingFieldByField(desiredOutputContext);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModel()).isEqualTo(request.getDesiredResourceState());
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+    }
+
+    @Test
     public void testCheckTargetHealth_cluster() {
         DBProxy dbProxy = new DBProxy().withStatus("available");
         DBProxyTargetGroup dbProxyTargetGroup = new DBProxyTargetGroup();

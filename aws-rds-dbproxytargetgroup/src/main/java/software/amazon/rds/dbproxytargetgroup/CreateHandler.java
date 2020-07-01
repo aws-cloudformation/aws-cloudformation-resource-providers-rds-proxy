@@ -94,6 +94,12 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
                     if (!callbackContext.isAllTargetsHealthy()) {
                         boolean allTargetsHealthy = checkTargetHealth(model);
 
+                        try {
+                            Thread.sleep(Constants.POLL_RETRY_DELAY_IN_MS);
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+
                         return ProgressEvent.<ResourceModel, CallbackContext>builder()
                                        .resourceModel(model)
                                        .status(OperationStatus.IN_PROGRESS)

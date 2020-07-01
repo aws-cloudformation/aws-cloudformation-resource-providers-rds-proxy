@@ -101,6 +101,12 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
         if (!callbackContext.isAllTargetsHealthy()) {
             boolean allTargetsHealthy = checkTargetHealth(newModel);
 
+            try {
+                Thread.sleep(Constants.POLL_RETRY_DELAY_IN_MS);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+
             return ProgressEvent.<ResourceModel, CallbackContext>builder()
                            .resourceModels(ImmutableList.of(oldModel, newModel))
                            .status(OperationStatus.IN_PROGRESS)

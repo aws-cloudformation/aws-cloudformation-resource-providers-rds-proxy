@@ -1,11 +1,17 @@
 package software.amazon.rds.dbproxytargetgroup;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import com.amazonaws.services.rds.AmazonRDS;
 import com.amazonaws.services.rds.AmazonRDSClientBuilder;
+import com.amazonaws.services.rds.model.DBProxyTarget;
+import com.amazonaws.services.rds.model.DeregisterDBProxyTargetsRequest;
 import com.amazonaws.services.rds.model.DescribeDBProxyTargetGroupsRequest;
 import com.amazonaws.services.rds.model.DescribeDBProxyTargetGroupsResult;
+import com.amazonaws.services.rds.model.DescribeDBProxyTargetsRequest;
+import com.amazonaws.services.rds.model.DescribeDBProxyTargetsResult;
 import software.amazon.cloudformation.exceptions.CfnNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
@@ -49,7 +55,30 @@ public class ReadHandler extends BaseHandler<CallbackContext> {
         final DescribeDBProxyTargetGroupsResult result = clientProxy.injectCredentialsAndInvoke(request, rdsClient::describeDBProxyTargetGroups);
 
         if (result != null && result.getTargetGroups() != null && result.getTargetGroups().size() == 1) {
-            return Utility.resultToModel(result.getTargetGroups().get(0));
+            ResourceModel resourceModel = Utility.resultToModel(result.getTargetGroups().get(0));
+
+            DescribeDBProxyTargetsRequest targetsRequest = new DescribeDBProxyTargetsRequest()
+                                                                         .withDBProxyName(proxyName)
+                                                                         .withTargetGroupName(targetGroupName);
+            final DescribeDBProxyTargetsResult targetsResult = clientProxy.injectCredentialsAndInvoke(targetsRequest, rdsClient::describeDBProxyTargets);
+            if (targetsResult != null) {
+                List<String> dbClusters = new ArrayList<>();
+                List<String> dbInstances = new ArrayList<>();
+                for (DBProxyTarget target: targetsResult.getTargets()) {
+                    if (target.getType().equals("TRACKED_CLUSTER")) {
+                        dbClusters.add(target.getRdsResourceId());
+                    } else {
+                        dbInstances.add(target.getRdsResourceId());
+                    }
+                }
+
+                if (dbClusters.size() > 0) {
+                    resourceModel.setDBClusterIdentifiers(dbClusters);
+                } else if (dbInstances.size() > 0){
+                    resourceModel.setDBInstanceIdentifiers(dbInstances);
+                }
+            }
+            return resourceModel;
         } else {
             String name = String.format("%s:%s", proxyName, targetGroupName);
             throw new CfnNotFoundException(ResourceModel.TYPE_NAME, name);

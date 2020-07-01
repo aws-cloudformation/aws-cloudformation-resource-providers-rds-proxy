@@ -32,7 +32,7 @@ public class Utility {
                        .requireTLS(proxy.getRequireTLS())
                        .roleArn(proxy.getRoleArn())
                        .vpcSecurityGroupIds(proxy.getVpcSecurityGroupIds())
-                       .vpcSubnetIds(proxy.getVpcSecurityGroupIds())
+                       .vpcSubnetIds(proxy.getVpcSubnetIds())
                        .build();
     }
 

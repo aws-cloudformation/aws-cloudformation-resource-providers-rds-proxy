@@ -10,5 +10,9 @@ public class Matchers {
         assertThat(rawModel).isInstanceOf(ResourceModel.class);
         ResourceModel model = (ResourceModel)rawModel;
         assertThat(model.getDBProxyName()).isEqualTo(sdkModel.getDBProxyName());
+        assertThat(model.getDBProxyArn()).isEqualTo(sdkModel.getDBProxyArn());
+        assertThat(model.getRoleArn()).isEqualTo(sdkModel.getRoleArn());
+        assertThat(model.getVpcSubnetIds()).isEqualTo(sdkModel.getVpcSubnetIds());
+        assertThat(model.getVpcSecurityGroupIds()).isEqualTo(sdkModel.getVpcSecurityGroupIds());
     }
 }

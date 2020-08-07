@@ -67,7 +67,7 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
         // Update tags
         if (!callbackContext.isTagsDeregistered()) {
             return ProgressEvent.<ResourceModel, CallbackContext>builder()
-                           .resourceModels(ImmutableList.of(oldModel, newModel))
+                           .resourceModel(newModel)
                            .status(OperationStatus.IN_PROGRESS)
                            .callbackContext(CallbackContext.builder()
                                                            .tagsDeregistered(deregisterOldTags(oldModel, newModel))
@@ -78,7 +78,7 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
 
         if (!callbackContext.isTagsRegistered()) {
             return ProgressEvent.<ResourceModel, CallbackContext>builder()
-                           .resourceModels(ImmutableList.of(oldModel, newModel))
+                           .resourceModel(newModel)
                            .status(OperationStatus.IN_PROGRESS)
                            .callbackContext(CallbackContext.builder()
                                                            .tagsDeregistered(callbackContext.isTagsDeregistered())
@@ -91,7 +91,7 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
         // Update proxy settings
         if (proxyStateSoFar == null) {
             return ProgressEvent.<ResourceModel, CallbackContext>builder()
-                           .resourceModels(ImmutableList.of(oldModel, newModel))
+                           .resourceModel(newModel)
                            .status(OperationStatus.IN_PROGRESS)
                            .callbackContext(CallbackContext.builder()
                                                            .tagsDeregistered(callbackContext.isTagsDeregistered())
@@ -119,7 +119,7 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
 
             DBProxy proxy = updatedProxyProgress(proxyStateSoFar.getDBProxyName());
             return ProgressEvent.<ResourceModel, CallbackContext>builder()
-                           .resourceModels(ImmutableList.of(oldModel, newModel))
+                           .resourceModel(newModel)
                            .status(OperationStatus.IN_PROGRESS)
                            .callbackContext(CallbackContext.builder()
                                                            .tagsDeregistered(callbackContext.isTagsDeregistered())

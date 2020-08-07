@@ -10,6 +10,7 @@
             "amazon",
             "rds",
             "dbproxy"
-        ]
+        ],
+        "protocolVersion": "2.0.0"
     }
 }

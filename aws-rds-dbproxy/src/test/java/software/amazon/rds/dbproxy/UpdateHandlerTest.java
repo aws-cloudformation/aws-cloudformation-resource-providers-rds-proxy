@@ -108,7 +108,7 @@ public class UpdateHandlerTest {
         assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
         assertThat(response.getCallbackContext()).isEqualToComparingFieldByField(desiredOutputContext);
         assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
-        assertThat(response.getResourceModels()).containsOnly(request.getDesiredResourceState(), request.getPreviousResourceState());
+        assertThat(response.getResourceModel()).isEqualTo(request.getDesiredResourceState());
         assertThat(response.getMessage()).isNull();
         assertThat(response.getErrorCode()).isNull();
     }
@@ -148,7 +148,7 @@ public class UpdateHandlerTest {
         assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
         assertThat(response.getCallbackContext()).isEqualToComparingFieldByField(desiredOutputContext);
         assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
-        assertThat(response.getResourceModels()).containsOnly(request.getDesiredResourceState(), request.getPreviousResourceState());
+        assertThat(response.getResourceModel()).isEqualTo(request.getDesiredResourceState());
         assertThat(response.getMessage()).isNull();
         assertThat(response.getErrorCode()).isNull();
 
@@ -195,7 +195,7 @@ public class UpdateHandlerTest {
         assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
         assertThat(response.getCallbackContext()).isEqualToComparingFieldByField(desiredOutputContext);
         assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
-        assertThat(response.getResourceModels()).containsOnly(request.getDesiredResourceState(), request.getPreviousResourceState());
+        assertThat(response.getResourceModel()).isEqualTo(request.getDesiredResourceState());
         assertThat(response.getMessage()).isNull();
         assertThat(response.getErrorCode()).isNull();
 
@@ -244,7 +244,7 @@ public class UpdateHandlerTest {
         assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
         assertThat(response.getCallbackContext()).isEqualToComparingFieldByField(desiredOutputContext);
         assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
-        assertThat(response.getResourceModels()).containsOnly(request.getDesiredResourceState(), request.getPreviousResourceState());
+        assertThat(response.getResourceModel()).isEqualTo(request.getDesiredResourceState());
         assertThat(response.getMessage()).isNull();
         assertThat(response.getErrorCode()).isNull();
 
@@ -297,7 +297,7 @@ public class UpdateHandlerTest {
         assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
         assertThat(response.getCallbackContext()).isEqualToComparingFieldByField(desiredOutputContext);
         assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
-        assertThat(response.getResourceModels()).containsOnly(request.getDesiredResourceState(), request.getPreviousResourceState());
+        assertThat(response.getResourceModel()).isEqualTo(request.getDesiredResourceState());
         assertThat(response.getMessage()).isNull();
         assertThat(response.getErrorCode()).isNull();
 

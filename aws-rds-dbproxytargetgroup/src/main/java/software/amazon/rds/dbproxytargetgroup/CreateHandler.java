@@ -32,6 +32,8 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
     private AmazonWebServicesClientProxy clientProxy;
     private AmazonRDS rdsClient;
 
+    private Logger log;
+
     @Override
     public ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
@@ -42,6 +44,7 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
 
         clientProxy = proxy;
         rdsClient = AmazonRDSClientBuilder.defaultClient();
+        log = logger;
 
         final CallbackContext currentContext = Optional.ofNullable(callbackContext)
                                                        .orElse(CallbackContext.builder()
@@ -61,34 +64,53 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
             throw new RuntimeException(TIMED_OUT_MESSAGE);
         }
 
-        if (proxyStateSoFar != null && !proxyStateSoFar.getStatus().equals(Constants.DELETING_PROXY_STATE)) {
-            if (callbackContext.getTargetGroupStatus() == null) {
-                // If proxy is in the available state then modify the target group settings
-                DBProxyTargetGroup targetGroupSettings = modifyProxyTargetGroup(model);
+        if (callbackContext.getTargetGroupStatus() == null) {
+            DBProxyTargetGroup targetGroupSettings = modifyProxyTargetGroup(model);
+            model.setTargetGroupArn(targetGroupSettings.getTargetGroupArn());
+            return ProgressEvent.<ResourceModel, CallbackContext>builder()
+                           .resourceModel(model)
+                           .status(OperationStatus.IN_PROGRESS)
+                           .callbackContext(CallbackContext.builder()
+                                                           .proxy(proxyStateSoFar)
+                                                           .targetGroupStatus(targetGroupSettings)
+                                                           .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
+                                                           .build())
+                           .build();
+
+        } else {
+            if (callbackContext.getTargets() == null) {
+                //If targets have not been setup, register them
+                List<DBProxyTarget> targets = registerDefaultTarget(model);
                 return ProgressEvent.<ResourceModel, CallbackContext>builder()
                                .resourceModel(model)
                                .status(OperationStatus.IN_PROGRESS)
                                .callbackContext(CallbackContext.builder()
                                                                .proxy(proxyStateSoFar)
-                                                               .targetGroupStatus(targetGroupSettings)
+                                                               .targetGroupStatus(callbackContext.getTargetGroupStatus())
+                                                               .targets(targets)
                                                                .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
                                                                .build())
                                .build();
-
             } else {
-                model.setTargetGroupArn(callbackContext.getTargetGroupStatus().getTargetGroupArn());
-                if (callbackContext.getTargets() == null) {
-                    //If targets have not been setup, register them
-                    List<DBProxyTarget> targets = registerDefaultTarget(model);
+                if (!callbackContext.isAllTargetsHealthy()) {
+                    boolean allTargetsHealthy = checkTargetHealth(model);
+
+                    try {
+                        Thread.sleep(Constants.POLL_RETRY_DELAY_IN_MS);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+
                     return ProgressEvent.<ResourceModel, CallbackContext>builder()
                                    .resourceModel(model)
                                    .status(OperationStatus.IN_PROGRESS)
                                    .callbackContext(CallbackContext.builder()
-                                                                   .proxy(proxyStateSoFar)
-                                                                   .targetGroupStatus(callbackContext.getTargetGroupStatus())
-                                                                   .targets(targets)
-                                                                   .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
-                                                                   .build())
+                                       .proxy(proxyStateSoFar)
+                                       .targetGroupStatus(callbackContext.getTargetGroupStatus())
+                                       .targets(callbackContext.getTargets())
+                                       .stabilizationRetriesRemaining(callbackContext.getStabilizationRetriesRemaining() - 1)
+                                       .allTargetsHealthy(allTargetsHealthy)
+                                       .build())
                                    .build();
                 } else {
                     if (!callbackContext.isAllTargetsHealthy()) {
@@ -114,22 +136,8 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
                     }
                 }
             }
-        } else {
-            // Wait for proxy to be in active state
-            try {
-                Thread.sleep(Constants.POLL_RETRY_DELAY_IN_MS);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-            return ProgressEvent.<ResourceModel, CallbackContext>builder()
-                           .resourceModel(model)
-                           .status(OperationStatus.IN_PROGRESS)
-                           .callbackContext(CallbackContext.builder()
-                                                           .proxy(describeProxyStatus(model.getDBProxyName()))
-                                                           .stabilizationRetriesRemaining(callbackContext.getStabilizationRetriesRemaining() - 1)
-                                                           .build())
-                           .build();
         }
+
     }
 
     private DBProxyTargetGroup modifyProxyTargetGroup(ResourceModel model) {
@@ -182,22 +190,5 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
 
         DescribeDBProxyTargetsResult describeResult = clientProxy.injectCredentialsAndInvoke(describeDBProxyTargetsRequest, rdsClient::describeDBProxyTargets);
         return validateHealth(describeResult);
-    }
-
-    private DBProxy describeProxyStatus(String proxyName) {
-        DescribeDBProxiesRequest describeDBProxiesRequest;
-        DescribeDBProxiesResult describeDBProxiesResult;
-
-        describeDBProxiesRequest = new DescribeDBProxiesRequest().withDBProxyName(proxyName);
-        try {
-            describeDBProxiesResult = clientProxy.injectCredentialsAndInvoke(describeDBProxiesRequest, rdsClient::describeDBProxies);
-            return describeDBProxiesResult.getDBProxies()
-                                          .stream()
-                                          .findFirst()
-                                          .orElse(new DBProxy());
-        } catch (DBProxyNotFoundException e) {
-            // Proxy not found, possible out of order creation, will retry
-            return null;
-        }
     }
 }

@@ -63,7 +63,7 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
         // Update target-group settings
         if (callbackContext.getTargetGroupStatus() == null) {
             return ProgressEvent.<ResourceModel, CallbackContext>builder()
-                           .resourceModels(ImmutableList.of(oldModel, newModel))
+                           .resourceModel(newModel)
                            .status(OperationStatus.IN_PROGRESS)
                            .callbackContext(CallbackContext.builder()
                                                            .targetGroupStatus(modifyProxyTargetGroup(oldModel, newModel))
@@ -75,7 +75,7 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
         // Update registered databases
         if  (!callbackContext.isTargetsDeregistered()) {
             return ProgressEvent.<ResourceModel, CallbackContext>builder()
-                           .resourceModels(ImmutableList.of(oldModel, newModel))
+                           .resourceModel(newModel)
                            .status(OperationStatus.IN_PROGRESS)
                            .callbackContext(CallbackContext.builder()
                                                            .targetGroupStatus(callbackContext.getTargetGroupStatus())
@@ -87,7 +87,7 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
 
         if (callbackContext.getTargets() == null) {
             return ProgressEvent.<ResourceModel, CallbackContext>builder()
-                           .resourceModels(ImmutableList.of(oldModel, newModel))
+                           .resourceModel(newModel)
                            .status(OperationStatus.IN_PROGRESS)
                            .callbackContext(CallbackContext.builder()
                                                            .targetGroupStatus(callbackContext.getTargetGroupStatus())
@@ -102,7 +102,7 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
             boolean allTargetsHealthy = checkTargetHealth(newModel);
 
             return ProgressEvent.<ResourceModel, CallbackContext>builder()
-                           .resourceModels(ImmutableList.of(oldModel, newModel))
+                           .resourceModel(newModel)
                            .status(OperationStatus.IN_PROGRESS)
                            .callbackContext(CallbackContext.builder()
                                .targetGroupStatus(callbackContext.getTargetGroupStatus())

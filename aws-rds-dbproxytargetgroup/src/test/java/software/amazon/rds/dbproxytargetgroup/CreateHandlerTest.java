@@ -29,6 +29,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -509,43 +510,8 @@ public class CreateHandlerTest {
     }
 
     @Test
-    public void testNotCreated(){
-        DBProxy dbProxy = new DBProxy().withStatus("creating");
-        doReturn(new DescribeDBProxiesResult().withDBProxies(dbProxy)).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class), any());
-        final CreateHandler handler = new CreateHandler();
-
-        ImmutableList<String> clusterId = ImmutableList.of("clusterId");
-
-        final ResourceModel model = ResourceModel.builder().dBClusterIdentifiers(clusterId).build();
-
-        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                                                                      .desiredResourceState(model)
-                                                                      .build();
-
-        final CallbackContext context = CallbackContext.builder()
-                                                       .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
-                                                       .build();
-
-        final ProgressEvent<ResourceModel, CallbackContext> response
-                = handler.handleRequest(proxy, request, context, logger);
-
-        final CallbackContext desiredOutputContext = CallbackContext.builder()
-                                                                    .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES - 1)
-                                                                    .proxy(dbProxy)
-                                                                    .build();
-        assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
-        assertThat(response.getCallbackContext()).isEqualToComparingFieldByField(desiredOutputContext);
-        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
-        assertThat(response.getResourceModel()).isEqualTo(request.getDesiredResourceState());
-        assertThat(response.getResourceModels()).isNull();
-        assertThat(response.getMessage()).isNull();
-        assertThat(response.getErrorCode()).isNull();
-    }
-
-    @Test
     public void testProxyDoesNotExist() {
-        doThrow(new DBProxyNotFoundException("")).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class), any());
+        doThrow(new DBProxyNotFoundException("")).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetGroupsRequest.class), any());
         final CreateHandler handler = new CreateHandler();
 
         final ResourceModel model = ResourceModel.builder().build();
@@ -558,20 +524,12 @@ public class CreateHandlerTest {
                                                        .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
                                                        .build();
 
-        final ProgressEvent<ResourceModel, CallbackContext> response
-                = handler.handleRequest(proxy, request, context, logger);
-
-        final CallbackContext desiredOutputContext = CallbackContext.builder()
-                                                                    .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES - 1)
-                                                                    .build();
-        assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
-        assertThat(response.getCallbackContext()).isEqualToComparingFieldByField(desiredOutputContext);
-        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
-        assertThat(response.getResourceModel()).isEqualTo(request.getDesiredResourceState());
-        assertThat(response.getResourceModels()).isNull();
-        assertThat(response.getMessage()).isNull();
-        assertThat(response.getErrorCode()).isNull();
+        try {
+            handler.handleRequest(proxy, request, context, logger);
+            fail("Expect ProxyNotFound exception");
+        } catch (Exception e) {
+            assertThat(e instanceof DBProxyNotFoundException);
+        }
     }
 
     @Test

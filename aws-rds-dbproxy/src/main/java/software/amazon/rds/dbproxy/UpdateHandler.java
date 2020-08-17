@@ -64,13 +64,28 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
             throw new RuntimeException(TIMED_OUT_MESSAGE);
         }
 
+
+        // Update proxy settings
+        if (proxyStateSoFar == null) {
+            return ProgressEvent.<ResourceModel, CallbackContext>builder()
+                           .resourceModel(newModel)
+                           .status(OperationStatus.IN_PROGRESS)
+                           .callbackContext(CallbackContext.builder()
+                                                           .proxy(updateProxySettings(oldModel, newModel))
+                                                           .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
+                                                           .build())
+                           .build();
+        }
+
+
         // Update tags
         if (!callbackContext.isTagsDeregistered()) {
             return ProgressEvent.<ResourceModel, CallbackContext>builder()
                            .resourceModel(newModel)
                            .status(OperationStatus.IN_PROGRESS)
                            .callbackContext(CallbackContext.builder()
-                                                           .tagsDeregistered(deregisterOldTags(oldModel, newModel))
+                                                           .proxy(proxyStateSoFar)
+                                                           .tagsDeregistered(deregisterOldTags(oldModel, newModel, proxyStateSoFar))
                                                            .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
                                                            .build())
                            .build();
@@ -81,26 +96,15 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
                            .resourceModel(newModel)
                            .status(OperationStatus.IN_PROGRESS)
                            .callbackContext(CallbackContext.builder()
+                                                           .proxy(proxyStateSoFar)
                                                            .tagsDeregistered(callbackContext.isTagsDeregistered())
-                                                           .tagsRegistered(registerNewTags(oldModel, newModel))
+                                                           .tagsRegistered(registerNewTags(oldModel, newModel, proxyStateSoFar))
                                                            .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
                                                            .build())
                            .build();
         }
 
-        // Update proxy settings
-        if (proxyStateSoFar == null) {
-            return ProgressEvent.<ResourceModel, CallbackContext>builder()
-                           .resourceModel(newModel)
-                           .status(OperationStatus.IN_PROGRESS)
-                           .callbackContext(CallbackContext.builder()
-                                                           .tagsDeregistered(callbackContext.isTagsDeregistered())
-                                                           .tagsRegistered(callbackContext.isTagsRegistered())
-                                                           .proxy(updateProxySettings(oldModel, newModel))
-                                                           .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
-                                                           .build())
-                           .build();
-        } else if (proxyStateSoFar.getStatus().equals(Constants.AVAILABLE_PROXY_STATE)) {
+        if (proxyStateSoFar.getStatus().equals(Constants.AVAILABLE_PROXY_STATE)) {
             return ProgressEvent.<ResourceModel, CallbackContext>builder()
                            .resourceModel(newModel)
                            .status(OperationStatus.SUCCESS)
@@ -146,7 +150,7 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
         return tagList.stream().map(t -> new Tag().withKey(t.getKey()).withValue(t.getValue())).collect(Collectors.toList());
     }
 
-    private boolean deregisterOldTags(ResourceModel oldModel, ResourceModel newModel) {
+    private boolean deregisterOldTags(ResourceModel oldModel, ResourceModel newModel, DBProxy proxy) {
         List<TagFormat> oldTags = getTagKeys(oldModel);
         List<TagFormat> newTags = getTagKeys(newModel);
         List<TagFormat> tagsToRemove = listNewTags(oldTags, newTags);
@@ -154,21 +158,20 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
 
         if (tagKeyList.size() > 0) {
             RemoveTagsFromResourceRequest removeTagsRequest = new RemoveTagsFromResourceRequest()
-                                                                      .withResourceName(oldModel.getDBProxyArn())
+                                                                      .withResourceName(proxy.getDBProxyArn())
                                                                       .withTagKeys(tagKeyList);
             clientProxy.injectCredentialsAndInvoke(removeTagsRequest, rdsClient::removeTagsFromResource);
         }
         return true;
     }
 
-    private boolean registerNewTags(ResourceModel oldModel, ResourceModel newModel) {
+    private boolean registerNewTags(ResourceModel oldModel, ResourceModel newModel, DBProxy proxy) {
         List<TagFormat> oldTags = getTagKeys(oldModel);
         List<TagFormat> newTags = getTagKeys(newModel);
         List<TagFormat> tagsToAdd = listNewTags(newTags, oldTags);
-
         if (tagsToAdd.size() > 0 ) {
             AddTagsToResourceRequest addTagsRequest = new AddTagsToResourceRequest()
-                                                              .withResourceName(oldModel.getDBProxyArn())
+                                                              .withResourceName(proxy.getDBProxyArn())
                                                               .withTags(toRDSTags(tagsToAdd));
             clientProxy.injectCredentialsAndInvoke(addTagsRequest, rdsClient::addTagsToResource);
         }
@@ -177,7 +180,6 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
 
     private DBProxy updateProxySettings(ResourceModel oldModel, ResourceModel newModel) {
         List<UserAuthConfig> userAuthConfig = Utility.getUserAuthConfigs(newModel);
-
         ModifyDBProxyRequest request = new ModifyDBProxyRequest()
                                                .withAuth(userAuthConfig)
                                                .withDBProxyName(oldModel.getDBProxyName())

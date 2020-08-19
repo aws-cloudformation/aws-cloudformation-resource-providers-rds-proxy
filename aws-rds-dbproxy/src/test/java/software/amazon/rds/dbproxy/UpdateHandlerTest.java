@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static software.amazon.rds.dbproxy.Constants.AVAILABLE_PROXY_STATE;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,7 +44,7 @@ public class UpdateHandlerTest {
 
     @Test
     public void handleRequest_SimpleSuccess() {
-        DBProxy dbProxy = new DBProxy().withStatus("available");
+        DBProxy dbProxy = new DBProxy().withStatus(AVAILABLE_PROXY_STATE);
         final CallbackContext context = CallbackContext.builder()
                                                        .proxy(dbProxy)
                                                        .stabilizationRetriesRemaining(1)
@@ -75,7 +76,7 @@ public class UpdateHandlerTest {
 
     @Test
     public void testModifyProxy() {
-        DBProxy dbProxy = new DBProxy().withStatus("available");
+        DBProxy dbProxy = new DBProxy().withStatus(AVAILABLE_PROXY_STATE);
         doReturn(new ModifyDBProxyResult().withDBProxy(dbProxy)).when(proxy).injectCredentialsAndInvoke(any(ModifyDBProxyRequest.class), any());
 
         final CallbackContext context = CallbackContext.builder()
@@ -111,7 +112,7 @@ public class UpdateHandlerTest {
 
     @Test
     public void testDeregisterTags() {
-        DBProxy dbProxy = new DBProxy().withStatus("available");
+        DBProxy dbProxy = new DBProxy().withStatus(AVAILABLE_PROXY_STATE);
         final CallbackContext context = CallbackContext.builder()
                                                        .stabilizationRetriesRemaining(1)
                                                        .proxy(dbProxy)
@@ -158,7 +159,7 @@ public class UpdateHandlerTest {
 
     @Test
     public void testRegisterTags() {
-        DBProxy dbProxy = new DBProxy().withStatus("available");
+        DBProxy dbProxy = new DBProxy().withStatus(AVAILABLE_PROXY_STATE);
         final CallbackContext context = CallbackContext.builder()
                                                        .stabilizationRetriesRemaining(1)
                                                        .tagsDeregistered(true)
@@ -208,7 +209,7 @@ public class UpdateHandlerTest {
 
     @Test
     public void testChangedTagValue_deregister() {
-        DBProxy dbProxy = new DBProxy().withStatus("available");
+        DBProxy dbProxy = new DBProxy().withStatus(AVAILABLE_PROXY_STATE);
         final CallbackContext context = CallbackContext.builder()
                                                        .stabilizationRetriesRemaining(1)
                                                        .proxy(dbProxy)
@@ -261,7 +262,7 @@ public class UpdateHandlerTest {
 
     @Test
     public void testChangedTagValue_Register() {
-        DBProxy dbProxy = new DBProxy().withStatus("available");
+        DBProxy dbProxy = new DBProxy().withStatus(AVAILABLE_PROXY_STATE);
         final CallbackContext context = CallbackContext.builder()
                                                        .stabilizationRetriesRemaining(1)
                                                        .tagsDeregistered(true)

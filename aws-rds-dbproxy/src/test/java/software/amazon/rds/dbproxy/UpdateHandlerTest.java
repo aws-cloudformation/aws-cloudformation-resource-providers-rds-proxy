@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static software.amazon.rds.dbproxy.Constants.AVAILABLE_PROXY_STATE;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,7 +44,7 @@ public class UpdateHandlerTest {
 
     @Test
     public void handleRequest_SimpleSuccess() {
-        DBProxy dbProxy = new DBProxy().withStatus("available");
+        DBProxy dbProxy = new DBProxy().withStatus(AVAILABLE_PROXY_STATE);
         final CallbackContext context = CallbackContext.builder()
                                                        .proxy(dbProxy)
                                                        .stabilizationRetriesRemaining(1)
@@ -75,13 +76,11 @@ public class UpdateHandlerTest {
 
     @Test
     public void testModifyProxy() {
-        DBProxy dbProxy = new DBProxy().withStatus("available");
+        DBProxy dbProxy = new DBProxy().withStatus(AVAILABLE_PROXY_STATE);
         doReturn(new ModifyDBProxyResult().withDBProxy(dbProxy)).when(proxy).injectCredentialsAndInvoke(any(ModifyDBProxyRequest.class), any());
 
         final CallbackContext context = CallbackContext.builder()
                                                        .stabilizationRetriesRemaining(1)
-                                                       .tagsRegistered(true)
-                                                       .tagsDeregistered(true)
                                                        .build();
 
         final UpdateHandler handler = new UpdateHandler();
@@ -97,8 +96,6 @@ public class UpdateHandlerTest {
         final CallbackContext desiredOutputContext = CallbackContext.builder()
                                                                     .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
                                                                     .proxy(dbProxy)
-                                                                    .tagsRegistered(true)
-                                                                    .tagsDeregistered(true)
                                                                     .build();
 
         final ProgressEvent<ResourceModel, CallbackContext> response
@@ -115,8 +112,10 @@ public class UpdateHandlerTest {
 
     @Test
     public void testDeregisterTags() {
+        DBProxy dbProxy = new DBProxy().withStatus(AVAILABLE_PROXY_STATE);
         final CallbackContext context = CallbackContext.builder()
                                                        .stabilizationRetriesRemaining(1)
+                                                       .proxy(dbProxy)
                                                        .build();
 
         final UpdateHandler handler = new UpdateHandler();
@@ -130,13 +129,13 @@ public class UpdateHandlerTest {
 
         final ResourceModel desiredModel = ResourceModel.builder().build();
         final ResourceModel oldModel = ResourceModel.builder().tags(ImmutableList.of(tag1, tag2)).build();
-
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                                                                       .desiredResourceState(desiredModel)
                                                                       .previousResourceState(oldModel)
                                                                       .build();
 
         final CallbackContext desiredOutputContext = CallbackContext.builder()
+                                                                    .proxy(dbProxy)
                                                                     .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
                                                                     .tagsDeregistered(true)
                                                                     .build();
@@ -160,9 +159,11 @@ public class UpdateHandlerTest {
 
     @Test
     public void testRegisterTags() {
+        DBProxy dbProxy = new DBProxy().withStatus(AVAILABLE_PROXY_STATE);
         final CallbackContext context = CallbackContext.builder()
                                                        .stabilizationRetriesRemaining(1)
                                                        .tagsDeregistered(true)
+                                                       .proxy(dbProxy)
                                                        .build();
 
         final UpdateHandler handler = new UpdateHandler();
@@ -185,6 +186,7 @@ public class UpdateHandlerTest {
         final CallbackContext desiredOutputContext = CallbackContext.builder()
                                                                     .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
                                                                     .tagsDeregistered(true)
+                                                                    .proxy(dbProxy)
                                                                     .tagsRegistered(true)
                                                                     .build();
 
@@ -207,8 +209,10 @@ public class UpdateHandlerTest {
 
     @Test
     public void testChangedTagValue_deregister() {
+        DBProxy dbProxy = new DBProxy().withStatus(AVAILABLE_PROXY_STATE);
         final CallbackContext context = CallbackContext.builder()
                                                        .stabilizationRetriesRemaining(1)
+                                                       .proxy(dbProxy)
                                                        .build();
 
         final UpdateHandler handler = new UpdateHandler();
@@ -235,6 +239,7 @@ public class UpdateHandlerTest {
         final CallbackContext desiredOutputContext = CallbackContext.builder()
                                                                     .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
                                                                     .tagsDeregistered(true)
+                                                                    .proxy(dbProxy)
                                                                     .build();
 
         final ProgressEvent<ResourceModel, CallbackContext> response
@@ -257,9 +262,11 @@ public class UpdateHandlerTest {
 
     @Test
     public void testChangedTagValue_Register() {
+        DBProxy dbProxy = new DBProxy().withStatus(AVAILABLE_PROXY_STATE);
         final CallbackContext context = CallbackContext.builder()
                                                        .stabilizationRetriesRemaining(1)
                                                        .tagsDeregistered(true)
+                                                       .proxy(dbProxy)
                                                        .build();
 
         final UpdateHandler handler = new UpdateHandler();
@@ -288,6 +295,7 @@ public class UpdateHandlerTest {
                                                                     .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
                                                                     .tagsDeregistered(true)
                                                                     .tagsRegistered(true)
+                                                                    .proxy(dbProxy)
                                                                     .build();
 
         final ProgressEvent<ResourceModel, CallbackContext> response

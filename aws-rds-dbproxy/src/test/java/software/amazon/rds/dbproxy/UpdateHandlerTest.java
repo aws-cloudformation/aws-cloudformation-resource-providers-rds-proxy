@@ -1,19 +1,5 @@
 package software.amazon.rds.dbproxy;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static software.amazon.rds.dbproxy.Constants.AVAILABLE_PROXY_STATE;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
 import com.amazonaws.services.rds.model.AddTagsToResourceRequest;
 import com.amazonaws.services.rds.model.DBProxy;
 import com.amazonaws.services.rds.model.ModifyDBProxyRequest;
@@ -21,11 +7,26 @@ import com.amazonaws.services.rds.model.ModifyDBProxyResult;
 import com.amazonaws.services.rds.model.RemoveTagsFromResourceRequest;
 import com.amazonaws.services.rds.model.Tag;
 import com.google.common.collect.ImmutableList;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
+
+import java.util.function.Function;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static software.amazon.rds.dbproxy.Constants.AVAILABLE_PROXY_STATE;
 
 @ExtendWith(MockitoExtension.class)
 public class UpdateHandlerTest {
@@ -75,9 +76,11 @@ public class UpdateHandlerTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testModifyProxy() {
         DBProxy dbProxy = new DBProxy().withStatus(AVAILABLE_PROXY_STATE);
-        doReturn(new ModifyDBProxyResult().withDBProxy(dbProxy)).when(proxy).injectCredentialsAndInvoke(any(ModifyDBProxyRequest.class), any());
+        doReturn(new ModifyDBProxyResult().withDBProxy(dbProxy)).when(proxy).injectCredentialsAndInvoke(any(ModifyDBProxyRequest.class),
+                any(Function.class));
 
         final CallbackContext context = CallbackContext.builder()
                                                        .stabilizationRetriesRemaining(1)
@@ -111,6 +114,7 @@ public class UpdateHandlerTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testDeregisterTags() {
         DBProxy dbProxy = new DBProxy().withStatus(AVAILABLE_PROXY_STATE);
         final CallbackContext context = CallbackContext.builder()
@@ -152,12 +156,13 @@ public class UpdateHandlerTest {
         assertThat(response.getErrorCode()).isNull();
 
         ArgumentCaptor<RemoveTagsFromResourceRequest> captor = ArgumentCaptor.forClass(RemoveTagsFromResourceRequest.class);
-        verify(proxy).injectCredentialsAndInvoke(captor.capture(), any());
+        verify(proxy).injectCredentialsAndInvoke(captor.capture(), any(Function.class));
         RemoveTagsFromResourceRequest removeTagsRequest = captor.getValue();
         assertThat(removeTagsRequest.getTagKeys().size()).isEqualTo(2);
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testRegisterTags() {
         DBProxy dbProxy = new DBProxy().withStatus(AVAILABLE_PROXY_STATE);
         final CallbackContext context = CallbackContext.builder()
@@ -202,12 +207,13 @@ public class UpdateHandlerTest {
         assertThat(response.getErrorCode()).isNull();
 
         ArgumentCaptor<AddTagsToResourceRequest> captor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
-        verify(proxy).injectCredentialsAndInvoke(captor.capture(), any());
+        verify(proxy).injectCredentialsAndInvoke(captor.capture(), any(Function.class));
         AddTagsToResourceRequest removeTagsRequest = captor.getValue();
         assertThat(removeTagsRequest.getTags().size()).isEqualTo(2);
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testChangedTagValue_deregister() {
         DBProxy dbProxy = new DBProxy().withStatus(AVAILABLE_PROXY_STATE);
         final CallbackContext context = CallbackContext.builder()
@@ -254,13 +260,14 @@ public class UpdateHandlerTest {
         assertThat(response.getErrorCode()).isNull();
 
         ArgumentCaptor<RemoveTagsFromResourceRequest> captor = ArgumentCaptor.forClass(RemoveTagsFromResourceRequest.class);
-        verify(proxy).injectCredentialsAndInvoke(captor.capture(), any());
+        verify(proxy).injectCredentialsAndInvoke(captor.capture(), any(Function.class));
         RemoveTagsFromResourceRequest removeTagsRequest = captor.getValue();
         assertThat(removeTagsRequest.getTagKeys().size()).isEqualTo(1);
         assertThat(removeTagsRequest.getTagKeys().get(0)).isEqualTo(sharedKey);
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testChangedTagValue_Register() {
         DBProxy dbProxy = new DBProxy().withStatus(AVAILABLE_PROXY_STATE);
         final CallbackContext context = CallbackContext.builder()
@@ -310,7 +317,7 @@ public class UpdateHandlerTest {
         assertThat(response.getErrorCode()).isNull();
 
         ArgumentCaptor<AddTagsToResourceRequest> captor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
-        verify(proxy).injectCredentialsAndInvoke(captor.capture(), any());
+        verify(proxy).injectCredentialsAndInvoke(captor.capture(), any(Function.class));
         AddTagsToResourceRequest addTagRequest = captor.getValue();
         assertThat(addTagRequest.getTags().size()).isEqualTo(1);
         Tag addedTag = addTagRequest.getTags().get(0);

@@ -5,6 +5,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
+import java.util.function.Function;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,9 +41,10 @@ public class CreateHandlerTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void handleRequest_InitialRunCreateProxy() {
         DBProxy dbProxy = new DBProxy().withStatus("creating");
-        doReturn(new CreateDBProxyResult().withDBProxy(dbProxy)).when(proxy).injectCredentialsAndInvoke(any(CreateDBProxyRequest.class), any());
+        doReturn(new CreateDBProxyResult().withDBProxy(dbProxy)).when(proxy).injectCredentialsAndInvoke(any(CreateDBProxyRequest.class), any(Function.class));
 
         final CreateHandler handler = new CreateHandler();
 
@@ -73,9 +76,10 @@ public class CreateHandlerTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void handleRequest_Creating() {
         DBProxy dbProxy = new DBProxy().withStatus("creating");
-        doReturn(new DescribeDBProxiesResult().withDBProxies(dbProxy)).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class), any());
+        doReturn(new DescribeDBProxiesResult().withDBProxies(dbProxy)).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class), any(Function.class));
 
         final CreateHandler handler = new CreateHandler();
 

@@ -6,6 +6,8 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 
+import java.util.function.Function;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -71,8 +73,9 @@ public class DeleteHandlerTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void handleRequest_alreadyDeletedTest() {
-        doThrow(new DBProxyNotFoundException("")).when(proxy).injectCredentialsAndInvoke(any(DeleteDBProxyRequest.class), any());
+        doThrow(new DBProxyNotFoundException("")).when(proxy).injectCredentialsAndInvoke(any(DeleteDBProxyRequest.class), any(Function.class));
 
         final DeleteHandler handler = new DeleteHandler();
 
@@ -104,9 +107,10 @@ public class DeleteHandlerTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void handleRequest_deleteTest() {
         DBProxy dbProxy = new DBProxy().withStatus("deleting");
-        doReturn(new DeleteDBProxyResult().withDBProxy(dbProxy)).when(proxy).injectCredentialsAndInvoke(any(DeleteDBProxyRequest.class), any());
+        doReturn(new DeleteDBProxyResult().withDBProxy(dbProxy)).when(proxy).injectCredentialsAndInvoke(any(DeleteDBProxyRequest.class), any(Function.class));
 
         final DeleteHandler handler = new DeleteHandler();
 
@@ -138,9 +142,10 @@ public class DeleteHandlerTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void handleRequest_deletingTest() {
         DBProxy dbProxy = new DBProxy().withStatus("deleting");
-        doReturn(new DescribeDBProxiesResult().withDBProxies(dbProxy)).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class), any());
+        doReturn(new DescribeDBProxiesResult().withDBProxies(dbProxy)).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class), any(Function.class));
 
         final DeleteHandler handler = new DeleteHandler();
 
@@ -173,10 +178,10 @@ public class DeleteHandlerTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void handleRequest_deletedTest() {
         DBProxy dbProxy = new DBProxy().withStatus("deleting");
-        //doReturn(new DescribeDBProxiesResult()).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class), any());
-        doThrow(new DBProxyNotFoundException("")).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class), any());
+        doThrow(new DBProxyNotFoundException("")).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class), any(Function.class));
 
         final DeleteHandler handler = new DeleteHandler();
 

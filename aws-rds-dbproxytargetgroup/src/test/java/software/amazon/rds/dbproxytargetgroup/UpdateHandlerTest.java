@@ -1,5 +1,20 @@
 package software.amazon.rds.dbproxytargetgroup;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
 import com.amazonaws.services.rds.model.ConnectionPoolConfigurationInfo;
 import com.amazonaws.services.rds.model.DBProxy;
 import com.amazonaws.services.rds.model.DBProxyTarget;
@@ -21,19 +36,6 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @ExtendWith(MockitoExtension.class)
 public class UpdateHandlerTest {
@@ -85,6 +87,7 @@ public class UpdateHandlerTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testModifyTargetGroup() {
         int connectionBorrowTimeout = 1;
         int maxConnectionsPercent = 25;
@@ -102,7 +105,8 @@ public class UpdateHandlerTest {
                                                                                                                    .withSessionPinningFilters(sessionPinningFilters);
 
         DBProxyTargetGroup dbProxyTargetGroup = new DBProxyTargetGroup().withConnectionPoolConfig(connectionPoolConfigurationInfo);
-        doReturn(new ModifyDBProxyTargetGroupResult().withDBProxyTargetGroup(dbProxyTargetGroup)).when(proxy).injectCredentialsAndInvoke(any(ModifyDBProxyTargetGroupRequest.class), any());
+        doReturn(new ModifyDBProxyTargetGroupResult().withDBProxyTargetGroup(dbProxyTargetGroup)).when(proxy)
+                .injectCredentialsAndInvoke(any(ModifyDBProxyTargetGroupRequest.class), any(Function.class));
 
 
         final CallbackContext context = CallbackContext.builder()
@@ -159,11 +163,13 @@ public class UpdateHandlerTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testModifyNoConnectionPoolConfig() {
         DBProxy dbProxy = new DBProxy().withStatus("available");
         ImmutableList<String> clusterId = ImmutableList.of("clusterId");
         DBProxyTargetGroup dbProxyTargetGroup = new DBProxyTargetGroup();
-        doReturn(new DescribeDBProxyTargetGroupsResult().withTargetGroups(dbProxyTargetGroup)).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetGroupsRequest.class), any());
+        doReturn(new DescribeDBProxyTargetGroupsResult().withTargetGroups(dbProxyTargetGroup)).when(proxy)
+                .injectCredentialsAndInvoke(any(DescribeDBProxyTargetGroupsRequest.class), any(Function.class));
         final CreateHandler handler = new CreateHandler();
 
         final ResourceModel model = ResourceModel.builder().dBClusterIdentifiers(clusterId).build();
@@ -248,11 +254,13 @@ public class UpdateHandlerTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testRegister() {
         DBProxy dbProxy = new DBProxy().withStatus("available");
         DBProxyTargetGroup dbProxyTargetGroup = new DBProxyTargetGroup();
         DBProxyTarget dbProxyTarget = new DBProxyTarget();
-        doReturn(new RegisterDBProxyTargetsResult().withDBProxyTargets(dbProxyTarget)).when(proxy).injectCredentialsAndInvoke(any(RegisterDBProxyTargetsRequest.class), any());
+        doReturn(new RegisterDBProxyTargetsResult().withDBProxyTargets(dbProxyTarget)).when(proxy)
+                .injectCredentialsAndInvoke(any(RegisterDBProxyTargetsRequest.class), any(Function.class));
         final UpdateHandler handler = new UpdateHandler();
 
         ImmutableList<String> clusterId = ImmutableList.of("clusterId");
@@ -292,9 +300,10 @@ public class UpdateHandlerTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testDeregister() {
         DBProxyTargetGroup dbProxyTargetGroup = new DBProxyTargetGroup();
-        doReturn(new DeregisterDBProxyTargetsResult()).when(proxy).injectCredentialsAndInvoke(any(DeregisterDBProxyTargetsRequest.class), any());
+        doReturn(new DeregisterDBProxyTargetsResult()).when(proxy).injectCredentialsAndInvoke(any(DeregisterDBProxyTargetsRequest.class), any(Function.class));
         final UpdateHandler handler = new UpdateHandler();
 
         ImmutableList<String> instanceId = ImmutableList.of("instanceId");
@@ -330,6 +339,7 @@ public class UpdateHandlerTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testTargetHealth() {
         DBProxyTargetGroup defaultTargetGroup = new DBProxyTargetGroup();
         DBProxyTarget dbProxyTarget = new DBProxyTarget().withRdsResourceId("resourceId");
@@ -340,7 +350,7 @@ public class UpdateHandlerTest {
                                        .withType("RDS_INSTANCE")
                                        .withTargetHealth(new TargetHealth().withState(Constants.AVAILABLE_STATE));
 
-        doReturn(new DescribeDBProxyTargetsResult().withTargets(target)).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class), any());
+        doReturn(new DescribeDBProxyTargetsResult().withTargets(target)).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class), any(Function.class));
         final CallbackContext context = CallbackContext.builder()
                                                        .targetGroupStatus(defaultTargetGroup)
                                                        .targets(targetList)

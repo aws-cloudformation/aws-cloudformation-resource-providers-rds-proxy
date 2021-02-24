@@ -7,6 +7,7 @@ import static org.mockito.Mockito.mock;
 import static software.amazon.rds.dbproxy.Matchers.assertThatModelsAreEqual;
 
 import java.util.List;
+import java.util.function.Function;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,6 +41,7 @@ public class ListHandlerTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void handleRequest_SimpleSuccess() {
         final ListHandler handler = new ListHandler();
 
@@ -51,7 +53,7 @@ public class ListHandlerTest {
 
         doReturn(new DescribeDBProxiesResult().withDBProxies(existingProxies))
                 .when(proxy)
-                .injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class), any());
+                .injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class), any(Function.class));
 
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()

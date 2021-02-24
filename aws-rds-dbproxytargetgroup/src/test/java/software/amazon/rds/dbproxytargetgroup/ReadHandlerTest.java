@@ -1,9 +1,25 @@
 package software.amazon.rds.dbproxytargetgroup;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static software.amazon.rds.dbproxytargetgroup.Matchers.assertThatModelsAreEqual;
+
+import java.util.List;
+import java.util.function.Function;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
 import com.amazonaws.services.rds.model.ConnectionPoolConfigurationInfo;
 import com.amazonaws.services.rds.model.DBProxyTarget;
 import com.amazonaws.services.rds.model.DBProxyTargetGroup;
-import com.amazonaws.services.rds.model.DescribeDBProxiesRequest;
 import com.amazonaws.services.rds.model.DescribeDBProxyTargetGroupsRequest;
 import com.amazonaws.services.rds.model.DescribeDBProxyTargetGroupsResult;
 import com.amazonaws.services.rds.model.DescribeDBProxyTargetsRequest;
@@ -16,22 +32,6 @@ import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static software.amazon.rds.dbproxytargetgroup.Matchers.assertThatModelsAreEqual;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @ExtendWith(MockitoExtension.class)
 public class ReadHandlerTest {
@@ -52,6 +52,7 @@ public class ReadHandlerTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void handleRequest_SimpleSuccess() {
         final ReadHandler handler = new ReadHandler();
         ConnectionPoolConfigurationInfo connectionPoolConfigurationInfo = new ConnectionPoolConfigurationInfo();
@@ -67,12 +68,12 @@ public class ReadHandlerTest {
                                                                      .withTargetGroupName(DEFAULT_NAME);
         doReturn(new DescribeDBProxyTargetGroupsResult().withTargetGroups(existingProxies))
                 .when(proxy)
-                .injectCredentialsAndInvoke(eq(describeRequest), any());
+                .injectCredentialsAndInvoke(eq(describeRequest), any(Function.class));
 
         DescribeDBProxyTargetsRequest targetRequest = new DescribeDBProxyTargetsRequest()
                                                               .withDBProxyName(PROXY_NAME)
                                                               .withTargetGroupName(DEFAULT_NAME);
-        doReturn(new DescribeDBProxyTargetsResult()).when(proxy).injectCredentialsAndInvoke(eq(targetRequest), any());
+        doReturn(new DescribeDBProxyTargetsResult()).when(proxy).injectCredentialsAndInvoke(eq(targetRequest), any(Function.class));
 
         final ResourceModel model = ResourceModel.builder().dBProxyName(PROXY_NAME).targetGroupName(DEFAULT_NAME).build();
 
@@ -96,6 +97,7 @@ public class ReadHandlerTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void handleRequest_WithRegisteredCluster() {
         final ReadHandler handler = new ReadHandler();
         ConnectionPoolConfigurationInfo connectionPoolConfigurationInfo = new ConnectionPoolConfigurationInfo();
@@ -111,7 +113,7 @@ public class ReadHandlerTest {
                                                                      .withTargetGroupName(DEFAULT_NAME);
         doReturn(new DescribeDBProxyTargetGroupsResult().withTargetGroups(existingProxies))
                 .when(proxy)
-                .injectCredentialsAndInvoke(eq(describeRequest), any());
+                .injectCredentialsAndInvoke(eq(describeRequest), any(Function.class));
 
         DescribeDBProxyTargetsRequest targetRequest = new DescribeDBProxyTargetsRequest()
                                                                    .withDBProxyName(PROXY_NAME)
@@ -120,7 +122,7 @@ public class ReadHandlerTest {
         doReturn(new DescribeDBProxyTargetsResult()
                          .withTargets(new DBProxyTarget().withType(TargetType.TRACKED_CLUSTER).withRdsResourceId(clusterId),
                                       new DBProxyTarget().withType(TargetType.RDS_INSTANCE).withRdsResourceId("instanceId")))
-                .when(proxy).injectCredentialsAndInvoke(eq(targetRequest), any());
+                .when(proxy).injectCredentialsAndInvoke(eq(targetRequest), any(Function.class));
 
         final ResourceModel model = ResourceModel.builder().dBProxyName(PROXY_NAME).targetGroupName(DEFAULT_NAME).build();
 
@@ -145,6 +147,7 @@ public class ReadHandlerTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void handleRequest_defaultName() {
         final ReadHandler handler = new ReadHandler();
 
@@ -161,7 +164,7 @@ public class ReadHandlerTest {
                                                                      .withTargetGroupName(DEFAULT_NAME);
         doReturn(new DescribeDBProxyTargetGroupsResult().withTargetGroups(existingProxies))
                 .when(proxy)
-                .injectCredentialsAndInvoke(eq(describeRequest), any());
+                .injectCredentialsAndInvoke(eq(describeRequest), any(Function.class));
 
 
         final ResourceModel model = ResourceModel.builder().dBProxyName(PROXY_NAME).build();
@@ -184,11 +187,12 @@ public class ReadHandlerTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void handleRequest_ResourceNotFound() {
         final ReadHandler handler = new ReadHandler();
 
         doReturn(new DescribeDBProxyTargetGroupsResult())
-                .when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetGroupsRequest.class), any());
+                .when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetGroupsRequest.class), any(Function.class));
 
         final ResourceModel model = ResourceModel.builder().dBProxyName("proxy1").build();
 

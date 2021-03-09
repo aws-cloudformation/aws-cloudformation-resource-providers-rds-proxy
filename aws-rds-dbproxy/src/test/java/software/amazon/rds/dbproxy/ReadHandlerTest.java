@@ -51,10 +51,11 @@ public class ReadHandlerTest {
         final ReadHandler handler = new ReadHandler();
 
         DBProxy proxy1 = new DBProxy().withDBProxyName("proxy1")
-                                      .withDBProxyArn("arn")
-                                      .withRoleArn("rolearn")
-                                      .withVpcSubnetIds("vpcsubnet1", "vpcsubnet2")
-                                      .withVpcSecurityGroupIds("sg1", "sg2");
+                .withDBProxyArn("arn")
+                .withRoleArn("rolearn")
+                .withVpcId("vpcId")
+                .withVpcSubnetIds("vpcsubnet1", "vpcsubnet2")
+                .withVpcSecurityGroupIds("sg1", "sg2");
         final List<DBProxy> existingProxies = ImmutableList.of(proxy1);
 
         doReturn(new DescribeDBProxiesResult().withDBProxies(existingProxies))
@@ -66,8 +67,8 @@ public class ReadHandlerTest {
         final ResourceModel model = ResourceModel.builder().dBProxyName("proxy1").build();
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                                                                      .desiredResourceState(model)
-                                                                      .build();
+                .desiredResourceState(model)
+                .build();
 
         final ProgressEvent<ResourceModel, CallbackContext> response
                 = handler.handleRequest(proxy, request, null, logger);
@@ -88,10 +89,11 @@ public class ReadHandlerTest {
         final ReadHandler handler = new ReadHandler();
 
         DBProxy proxy1 = new DBProxy().withDBProxyName("proxy1")
-                                      .withDBProxyArn("arn")
-                                      .withRoleArn("rolearn")
-                                      .withVpcSubnetIds("vpcsubnet1", "vpcsubnet2")
-                                      .withVpcSecurityGroupIds("sg1", "sg2");
+                .withDBProxyArn("arn")
+                .withRoleArn("rolearn")
+                .withVpcId("vpcId")
+                .withVpcSubnetIds("vpcsubnet1", "vpcsubnet2")
+                .withVpcSecurityGroupIds("sg1", "sg2");
         final List<DBProxy> existingProxies = ImmutableList.of(proxy1);
 
         doReturn(new DescribeDBProxiesResult().withDBProxies(existingProxies))
@@ -103,7 +105,7 @@ public class ReadHandlerTest {
         String tagKey2 = "tagKey2";
         String tagValue2 = "tagValue2";
         List<Tag> tagList = ImmutableList.of(new Tag().withKey(tagKey).withValue(tagValue),
-                                             new Tag().withKey(tagKey2).withValue(tagValue2));
+                new Tag().withKey(tagKey2).withValue(tagValue2));
         doReturn(new ListTagsForResourceResult().withTagList(tagList))
                 .when(proxy)
                 .injectCredentialsAndInvoke(any(ListTagsForResourceRequest.class), any(Function.class));
@@ -111,8 +113,8 @@ public class ReadHandlerTest {
         final ResourceModel model = ResourceModel.builder().dBProxyName("proxy1").build();
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                                                                      .desiredResourceState(model)
-                                                                      .build();
+                .desiredResourceState(model)
+                .build();
 
         final ProgressEvent<ResourceModel, CallbackContext> response
                 = handler.handleRequest(proxy, request, null, logger);
@@ -144,8 +146,8 @@ public class ReadHandlerTest {
         final ResourceModel model = ResourceModel.builder().dBProxyName("proxy1").build();
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
-                                                                      .desiredResourceState(model)
-                                                                      .build();
+                .desiredResourceState(model)
+                .build();
 
         assertThrows(CfnNotFoundException.class, () -> {
             handler.handleRequest(proxy, request, null, logger);

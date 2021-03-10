@@ -224,7 +224,8 @@ public class CreateHandlerTest {
     public void handleRequest_Creating() {
         DBProxyEndpoint dbProxyEndpoint = new DBProxyEndpoint().withStatus("creating");
         doReturn(new DescribeDBProxyEndpointsResult().withDBProxyEndpoints(dbProxyEndpoint)).when(proxy)
-                .injectCredentialsAndInvoke(any(DescribeDBProxyEndpointsRequest.class), any(Function.class));
+                .injectCredentialsAndInvoke(any(DescribeDBProxyEndpointsRequest.class),
+                        ArgumentMatchers.<Function<DescribeDBProxyEndpointsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
 
         final CreateHandler handler = new CreateHandler();
 

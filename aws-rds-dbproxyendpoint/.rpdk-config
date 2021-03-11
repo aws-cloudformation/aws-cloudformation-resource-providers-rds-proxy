@@ -1,0 +1,19 @@
+{
+    "artifact_type": "RESOURCE",
+    "typeName": "AWS::RDS::DBProxyEndpoint",
+    "language": "java",
+    "runtime": "java8",
+    "entrypoint": "software.amazon.rds.dbproxyendpoint.HandlerWrapper::handleRequest",
+    "testEntrypoint": "software.amazon.rds.dbproxyendpoint.HandlerWrapper::testEntrypoint",
+    "settings": {
+        "namespace": [
+            "software",
+            "amazon",
+            "rds",
+            "dbproxyendpoint"
+        ],
+        "codegen_template_path": "default",
+        "protocolVersion": "2.0.0"
+    },
+    "executableEntrypoint": "software.amazon.rds.dbproxyendpoint.HandlerWrapperExecutable"
+}

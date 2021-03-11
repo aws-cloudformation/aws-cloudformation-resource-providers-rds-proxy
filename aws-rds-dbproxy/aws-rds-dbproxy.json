@@ -33,7 +33,8 @@
           "description": "The name of the database user to which the proxy connects.",
           "type": "string"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "TagFormat": {
       "type": "object",
@@ -48,7 +49,8 @@
           "pattern": "(\\w|\\d|\\s|\\\\|-|\\.:=+-)*",
           "maxLength": 128
         }
-      }
+      },
+      "additionalProperties": false
     }
   },
   "properties": {
@@ -107,6 +109,10 @@
         "$ref": "#/definitions/TagFormat"
       }
     },
+    "VpcId": {
+      "description": "VPC ID to associate with the new DB proxy.",
+      "type": "string"
+    },
     "VpcSecurityGroupIds": {
       "description": "VPC security group IDs to associate with the new proxy.",
       "type": "array",
@@ -136,7 +142,8 @@
   ],
   "readOnlyProperties": [
     "/properties/DBProxyArn",
-    "/properties/Endpoint"
+    "/properties/Endpoint",
+    "/properties/VpcId"
   ],
   "createOnlyProperties": [
     "/properties/DBProxyName",

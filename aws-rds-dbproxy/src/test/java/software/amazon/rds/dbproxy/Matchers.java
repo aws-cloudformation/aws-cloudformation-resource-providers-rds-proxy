@@ -12,6 +12,7 @@ public class Matchers {
         assertThat(model.getDBProxyName()).isEqualTo(sdkModel.getDBProxyName());
         assertThat(model.getDBProxyArn()).isEqualTo(sdkModel.getDBProxyArn());
         assertThat(model.getRoleArn()).isEqualTo(sdkModel.getRoleArn());
+        assertThat(model.getVpcId()).isEqualTo(sdkModel.getVpcId());
         assertThat(model.getVpcSubnetIds()).isEqualTo(sdkModel.getVpcSubnetIds());
         assertThat(model.getVpcSecurityGroupIds()).isEqualTo(sdkModel.getVpcSecurityGroupIds());
     }

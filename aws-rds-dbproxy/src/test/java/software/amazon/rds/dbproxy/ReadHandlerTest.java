@@ -13,9 +13,12 @@ import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.amazonaws.AmazonWebServiceResult;
+import com.amazonaws.ResponseMetadata;
 import com.amazonaws.services.rds.model.DBProxy;
 import com.amazonaws.services.rds.model.DescribeDBProxiesRequest;
 import com.amazonaws.services.rds.model.DescribeDBProxiesResult;
@@ -46,7 +49,6 @@ public class ReadHandlerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void handleRequest_SimpleSuccess() {
         final ReadHandler handler = new ReadHandler();
 
@@ -60,9 +62,11 @@ public class ReadHandlerTest {
 
         doReturn(new DescribeDBProxiesResult().withDBProxies(existingProxies))
                 .when(proxy)
-                .injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class), any(Function.class));
+                .injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class),
+                        ArgumentMatchers.<Function<DescribeDBProxiesRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
 
-        doReturn(new ListTagsForResourceResult()).when(proxy).injectCredentialsAndInvoke(any(ListTagsForResourceRequest.class), any(Function.class));
+        doReturn(new ListTagsForResourceResult()).when(proxy).injectCredentialsAndInvoke(any(ListTagsForResourceRequest.class),
+                ArgumentMatchers.<Function<ListTagsForResourceRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
 
         final ResourceModel model = ResourceModel.builder().dBProxyName("proxy1").build();
 
@@ -84,7 +88,6 @@ public class ReadHandlerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void handleRequest_WithTags() {
         final ReadHandler handler = new ReadHandler();
 
@@ -98,7 +101,8 @@ public class ReadHandlerTest {
 
         doReturn(new DescribeDBProxiesResult().withDBProxies(existingProxies))
                 .when(proxy)
-                .injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class), any(Function.class));
+                .injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class),
+                        ArgumentMatchers.<Function<DescribeDBProxiesRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
 
         String tagKey = "tagKey";
         String tagValue = "tagValue";
@@ -108,7 +112,8 @@ public class ReadHandlerTest {
                 new Tag().withKey(tagKey2).withValue(tagValue2));
         doReturn(new ListTagsForResourceResult().withTagList(tagList))
                 .when(proxy)
-                .injectCredentialsAndInvoke(any(ListTagsForResourceRequest.class), any(Function.class));
+                .injectCredentialsAndInvoke(any(ListTagsForResourceRequest.class),
+                        ArgumentMatchers.<Function<ListTagsForResourceRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
 
         final ResourceModel model = ResourceModel.builder().dBProxyName("proxy1").build();
 
@@ -135,13 +140,13 @@ public class ReadHandlerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void handleRequest_ResourceNotFound() {
         final ReadHandler handler = new ReadHandler();
 
         doReturn(new DescribeDBProxiesResult())
                 .when(proxy)
-                .injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class), any(Function.class));
+                .injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class),
+                        ArgumentMatchers.<Function<DescribeDBProxiesRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
 
         final ResourceModel model = ResourceModel.builder().dBProxyName("proxy1").build();
 

@@ -15,9 +15,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.amazonaws.AmazonWebServiceResult;
+import com.amazonaws.ResponseMetadata;
 import com.amazonaws.services.rds.model.DBProxyNotFoundException;
 import com.amazonaws.services.rds.model.DBProxyTarget;
 import com.amazonaws.services.rds.model.DeregisterDBProxyTargetsRequest;
@@ -75,10 +78,10 @@ public class DeleteHandlerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void handleRequest_DeregisterEmpty() {
         DescribeDBProxyTargetsResult emptyResult = new DescribeDBProxyTargetsResult();
-        doReturn(emptyResult).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class), any(Function.class));
+        doReturn(emptyResult).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class),
+                ArgumentMatchers.<Function<DescribeDBProxyTargetsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
 
         final DeleteHandler handler = new DeleteHandler();
 
@@ -110,14 +113,14 @@ public class DeleteHandlerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void handleRequest_DeregisterInstance() {
         String instanceId= "instanceID";
         DescribeDBProxyTargetsResult describeResult = new DescribeDBProxyTargetsResult()
                                                               .withTargets(new DBProxyTarget()
                                                                                    .withRdsResourceId(instanceId)
                                                                                    .withType("RDS_INSTANCE"));
-        doReturn(describeResult).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class), any(Function.class));
+        doReturn(describeResult).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class),
+                ArgumentMatchers.<Function<DescribeDBProxyTargetsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
         final DeleteHandler handler = new DeleteHandler();
 
         final ResourceModel oldModel = ResourceModel.builder().dBInstanceIdentifiers(ImmutableList.of("db1")).build();
@@ -147,15 +150,15 @@ public class DeleteHandlerTest {
         assertThat(response.getErrorCode()).isNull();
 
         ArgumentCaptor<DeregisterDBProxyTargetsRequest> captor = ArgumentCaptor.forClass(DeregisterDBProxyTargetsRequest.class);
-        verify(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class), any(Function.class));
-        verify(proxy, times(2)).injectCredentialsAndInvoke(captor.capture(), any(Function.class));
+        verify(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class), ArgumentMatchers.<Function<DescribeDBProxyTargetsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        verify(proxy, times(2)).injectCredentialsAndInvoke(captor.capture(),
+                ArgumentMatchers.<Function<DeregisterDBProxyTargetsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
         DeregisterDBProxyTargetsRequest deregisterDBProxyTargetsRequest = captor.getValue();
         assertThat(deregisterDBProxyTargetsRequest.getDBInstanceIdentifiers()).isEqualTo(ImmutableList.of(instanceId));
         assertThat(deregisterDBProxyTargetsRequest.getDBClusterIdentifiers().size()).isEqualTo(0);
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void handleRequest_DeregisterCluster() {
         String instanceId= "instanceID";
         String clusterName = "clusterName";
@@ -163,7 +166,8 @@ public class DeleteHandlerTest {
         DBProxyTarget cluster = new DBProxyTarget().withRdsResourceId(clusterName).withType("TRACKED_CLUSTER");
         DescribeDBProxyTargetsResult describeResult = new DescribeDBProxyTargetsResult()
                                                               .withTargets(instance, cluster);
-        doReturn(describeResult).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class), any(Function.class));
+        doReturn(describeResult).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class),
+                ArgumentMatchers.<Function<DescribeDBProxyTargetsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
         final DeleteHandler handler = new DeleteHandler();
 
         final ResourceModel oldModel = ResourceModel.builder().dBInstanceIdentifiers(ImmutableList.of("db1")).build();
@@ -193,17 +197,19 @@ public class DeleteHandlerTest {
         assertThat(response.getErrorCode()).isNull();
 
         ArgumentCaptor<DeregisterDBProxyTargetsRequest> captor = ArgumentCaptor.forClass(DeregisterDBProxyTargetsRequest.class);
-        verify(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class), any(Function.class));
-        verify(proxy, times(2)).injectCredentialsAndInvoke(captor.capture(), any(Function.class));
+        verify(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class),
+                ArgumentMatchers.<Function<DescribeDBProxyTargetsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        verify(proxy, times(2)).injectCredentialsAndInvoke(captor.capture(),
+                ArgumentMatchers.<Function<DeregisterDBProxyTargetsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
         DeregisterDBProxyTargetsRequest deregisterDBProxyTargetsRequest = captor.getValue();
         assertThat(deregisterDBProxyTargetsRequest.getDBClusterIdentifiers()).isEqualTo(ImmutableList.of(clusterName));
         assertThat(deregisterDBProxyTargetsRequest.getDBInstanceIdentifiers().size()).isEqualTo(0);
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void handleRequest_DeregisterProxyDeleted() {
-        doThrow(new DBProxyNotFoundException("")).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class), any(Function.class));
+        doThrow(new DBProxyNotFoundException("")).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class),
+                ArgumentMatchers.<Function<DescribeDBProxyTargetsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
 
         final DeleteHandler handler = new DeleteHandler();
 
@@ -234,10 +240,10 @@ public class DeleteHandlerTest {
         assertThat(response.getErrorCode()).isNull();
     }
     @Test
-    @SuppressWarnings("unchecked")
     public void handleRequest_DeregisterProxyDeleting() {
         doThrow(new InvalidDBProxyStateException("DB Proxy prx-123 is in an unsupported state - DELETING, needs to be in [ACTIVE]")).when(proxy)
-                .injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class), any(Function.class));
+                .injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class),
+                        ArgumentMatchers.<Function<DescribeDBProxyTargetsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
 
         final DeleteHandler handler = new DeleteHandler();
 

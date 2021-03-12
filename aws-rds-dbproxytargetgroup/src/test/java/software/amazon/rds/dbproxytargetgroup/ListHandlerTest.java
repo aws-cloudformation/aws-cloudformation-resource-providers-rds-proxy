@@ -12,9 +12,12 @@ import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.amazonaws.AmazonWebServiceResult;
+import com.amazonaws.ResponseMetadata;
 import com.amazonaws.services.rds.model.ConnectionPoolConfigurationInfo;
 import com.amazonaws.services.rds.model.DBProxyTargetGroup;
 import com.amazonaws.services.rds.model.DescribeDBProxyTargetGroupsRequest;
@@ -42,7 +45,6 @@ public class ListHandlerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void handleRequest_SimpleSuccess() {
         final ListHandler handler = new ListHandler();
 
@@ -59,7 +61,8 @@ public class ListHandlerTest {
         final List<DBProxyTargetGroup> existingProxies = ImmutableList.of(dbProxyTargetGroup1, dbProxyTargetGroup2);
 
         doReturn(new DescribeDBProxyTargetGroupsResult().withTargetGroups(existingProxies))
-                .when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetGroupsRequest.class), any(Function.class));
+                .when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetGroupsRequest.class),
+                ArgumentMatchers.<Function<DescribeDBProxyTargetGroupsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
 
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()

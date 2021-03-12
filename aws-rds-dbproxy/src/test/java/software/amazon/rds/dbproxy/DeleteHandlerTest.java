@@ -11,9 +11,12 @@ import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.amazonaws.AmazonWebServiceResult;
+import com.amazonaws.ResponseMetadata;
 import com.amazonaws.services.rds.model.DBProxy;
 import com.amazonaws.services.rds.model.DBProxyNotFoundException;
 import com.amazonaws.services.rds.model.DeleteDBProxyRequest;
@@ -73,9 +76,9 @@ public class DeleteHandlerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void handleRequest_alreadyDeletedTest() {
-        doThrow(new DBProxyNotFoundException("")).when(proxy).injectCredentialsAndInvoke(any(DeleteDBProxyRequest.class), any(Function.class));
+        doThrow(new DBProxyNotFoundException("")).when(proxy).injectCredentialsAndInvoke(any(DeleteDBProxyRequest.class),
+                ArgumentMatchers.<Function<DeleteDBProxyRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
 
         final DeleteHandler handler = new DeleteHandler();
 
@@ -107,10 +110,10 @@ public class DeleteHandlerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void handleRequest_deleteTest() {
         DBProxy dbProxy = new DBProxy().withStatus("deleting");
-        doReturn(new DeleteDBProxyResult().withDBProxy(dbProxy)).when(proxy).injectCredentialsAndInvoke(any(DeleteDBProxyRequest.class), any(Function.class));
+        doReturn(new DeleteDBProxyResult().withDBProxy(dbProxy)).when(proxy).injectCredentialsAndInvoke(any(DeleteDBProxyRequest.class),
+                ArgumentMatchers.<Function<DeleteDBProxyRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
 
         final DeleteHandler handler = new DeleteHandler();
 
@@ -142,10 +145,10 @@ public class DeleteHandlerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void handleRequest_deletingTest() {
         DBProxy dbProxy = new DBProxy().withStatus("deleting");
-        doReturn(new DescribeDBProxiesResult().withDBProxies(dbProxy)).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class), any(Function.class));
+        doReturn(new DescribeDBProxiesResult().withDBProxies(dbProxy)).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class),
+                ArgumentMatchers.<Function<DescribeDBProxiesRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
 
         final DeleteHandler handler = new DeleteHandler();
 
@@ -178,10 +181,10 @@ public class DeleteHandlerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void handleRequest_deletedTest() {
         DBProxy dbProxy = new DBProxy().withStatus("deleting");
-        doThrow(new DBProxyNotFoundException("")).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class), any(Function.class));
+        doThrow(new DBProxyNotFoundException("")).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class),
+                ArgumentMatchers.<Function<DescribeDBProxiesRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
 
         final DeleteHandler handler = new DeleteHandler();
 

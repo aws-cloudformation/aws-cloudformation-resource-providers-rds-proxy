@@ -12,9 +12,12 @@ import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.amazonaws.AmazonWebServiceResult;
+import com.amazonaws.ResponseMetadata;
 import com.amazonaws.services.rds.model.DBProxy;
 import com.amazonaws.services.rds.model.DescribeDBProxiesRequest;
 import com.amazonaws.services.rds.model.DescribeDBProxiesResult;
@@ -41,7 +44,6 @@ public class ListHandlerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void handleRequest_SimpleSuccess() {
         final ListHandler handler = new ListHandler();
 
@@ -53,7 +55,8 @@ public class ListHandlerTest {
 
         doReturn(new DescribeDBProxiesResult().withDBProxies(existingProxies))
                 .when(proxy)
-                .injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class), any(Function.class));
+                .injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class),
+                        ArgumentMatchers.<Function<DescribeDBProxiesRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
 
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()

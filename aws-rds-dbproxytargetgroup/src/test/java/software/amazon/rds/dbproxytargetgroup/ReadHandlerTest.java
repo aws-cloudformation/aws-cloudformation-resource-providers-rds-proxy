@@ -14,9 +14,12 @@ import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.amazonaws.AmazonWebServiceResult;
+import com.amazonaws.ResponseMetadata;
 import com.amazonaws.services.rds.model.ConnectionPoolConfigurationInfo;
 import com.amazonaws.services.rds.model.DBProxyTarget;
 import com.amazonaws.services.rds.model.DBProxyTargetGroup;
@@ -52,7 +55,6 @@ public class ReadHandlerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void handleRequest_SimpleSuccess() {
         final ReadHandler handler = new ReadHandler();
         ConnectionPoolConfigurationInfo connectionPoolConfigurationInfo = new ConnectionPoolConfigurationInfo();
@@ -68,12 +70,14 @@ public class ReadHandlerTest {
                                                                      .withTargetGroupName(DEFAULT_NAME);
         doReturn(new DescribeDBProxyTargetGroupsResult().withTargetGroups(existingProxies))
                 .when(proxy)
-                .injectCredentialsAndInvoke(eq(describeRequest), any(Function.class));
+                .injectCredentialsAndInvoke(eq(describeRequest),
+                        ArgumentMatchers.<Function<DescribeDBProxyTargetGroupsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
 
         DescribeDBProxyTargetsRequest targetRequest = new DescribeDBProxyTargetsRequest()
                                                               .withDBProxyName(PROXY_NAME)
                                                               .withTargetGroupName(DEFAULT_NAME);
-        doReturn(new DescribeDBProxyTargetsResult()).when(proxy).injectCredentialsAndInvoke(eq(targetRequest), any(Function.class));
+        doReturn(new DescribeDBProxyTargetsResult()).when(proxy).injectCredentialsAndInvoke(eq(targetRequest),
+                ArgumentMatchers.<Function<DescribeDBProxyTargetsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
 
         final ResourceModel model = ResourceModel.builder().dBProxyName(PROXY_NAME).targetGroupName(DEFAULT_NAME).build();
 
@@ -97,7 +101,6 @@ public class ReadHandlerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void handleRequest_WithRegisteredCluster() {
         final ReadHandler handler = new ReadHandler();
         ConnectionPoolConfigurationInfo connectionPoolConfigurationInfo = new ConnectionPoolConfigurationInfo();
@@ -113,7 +116,8 @@ public class ReadHandlerTest {
                                                                      .withTargetGroupName(DEFAULT_NAME);
         doReturn(new DescribeDBProxyTargetGroupsResult().withTargetGroups(existingProxies))
                 .when(proxy)
-                .injectCredentialsAndInvoke(eq(describeRequest), any(Function.class));
+                .injectCredentialsAndInvoke(eq(describeRequest),
+                        ArgumentMatchers.<Function<DescribeDBProxyTargetGroupsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
 
         DescribeDBProxyTargetsRequest targetRequest = new DescribeDBProxyTargetsRequest()
                                                                    .withDBProxyName(PROXY_NAME)
@@ -122,7 +126,7 @@ public class ReadHandlerTest {
         doReturn(new DescribeDBProxyTargetsResult()
                          .withTargets(new DBProxyTarget().withType(TargetType.TRACKED_CLUSTER).withRdsResourceId(clusterId),
                                       new DBProxyTarget().withType(TargetType.RDS_INSTANCE).withRdsResourceId("instanceId")))
-                .when(proxy).injectCredentialsAndInvoke(eq(targetRequest), any(Function.class));
+                .when(proxy).injectCredentialsAndInvoke(eq(targetRequest), ArgumentMatchers.<Function<DescribeDBProxyTargetsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
 
         final ResourceModel model = ResourceModel.builder().dBProxyName(PROXY_NAME).targetGroupName(DEFAULT_NAME).build();
 
@@ -147,7 +151,6 @@ public class ReadHandlerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void handleRequest_defaultName() {
         final ReadHandler handler = new ReadHandler();
 
@@ -164,7 +167,8 @@ public class ReadHandlerTest {
                                                                      .withTargetGroupName(DEFAULT_NAME);
         doReturn(new DescribeDBProxyTargetGroupsResult().withTargetGroups(existingProxies))
                 .when(proxy)
-                .injectCredentialsAndInvoke(eq(describeRequest), any(Function.class));
+                .injectCredentialsAndInvoke(eq(describeRequest),
+                        ArgumentMatchers.<Function<DescribeDBProxyTargetGroupsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
 
 
         final ResourceModel model = ResourceModel.builder().dBProxyName(PROXY_NAME).build();
@@ -187,12 +191,12 @@ public class ReadHandlerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void handleRequest_ResourceNotFound() {
         final ReadHandler handler = new ReadHandler();
 
         doReturn(new DescribeDBProxyTargetGroupsResult())
-                .when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetGroupsRequest.class), any(Function.class));
+                .when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetGroupsRequest.class),
+                ArgumentMatchers.<Function<DescribeDBProxyTargetGroupsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
 
         final ResourceModel model = ResourceModel.builder().dBProxyName("proxy1").build();
 

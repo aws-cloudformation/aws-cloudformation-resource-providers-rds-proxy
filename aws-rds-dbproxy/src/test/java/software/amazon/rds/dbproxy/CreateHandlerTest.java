@@ -10,9 +10,12 @@ import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.amazonaws.AmazonWebServiceResult;
+import com.amazonaws.ResponseMetadata;
 import com.amazonaws.services.rds.model.CreateDBProxyRequest;
 import com.amazonaws.services.rds.model.CreateDBProxyResult;
 import com.amazonaws.services.rds.model.DBProxy;
@@ -41,10 +44,10 @@ public class CreateHandlerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void handleRequest_InitialRunCreateProxy() {
         DBProxy dbProxy = new DBProxy().withStatus("creating");
-        doReturn(new CreateDBProxyResult().withDBProxy(dbProxy)).when(proxy).injectCredentialsAndInvoke(any(CreateDBProxyRequest.class), any(Function.class));
+        doReturn(new CreateDBProxyResult().withDBProxy(dbProxy)).when(proxy).injectCredentialsAndInvoke(any(CreateDBProxyRequest.class),
+                ArgumentMatchers.<Function<CreateDBProxyRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
 
         final CreateHandler handler = new CreateHandler();
 
@@ -76,10 +79,10 @@ public class CreateHandlerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void handleRequest_Creating() {
         DBProxy dbProxy = new DBProxy().withStatus("creating");
-        doReturn(new DescribeDBProxiesResult().withDBProxies(dbProxy)).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class), any(Function.class));
+        doReturn(new DescribeDBProxiesResult().withDBProxies(dbProxy)).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class),
+                ArgumentMatchers.<Function<DescribeDBProxiesRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
 
         final CreateHandler handler = new CreateHandler();
 
@@ -135,6 +138,7 @@ public class CreateHandlerTest {
         assertThat(response.getMessage()).isNull();
         assertThat(response.getErrorCode()).isNull();
     }
+
     @Test
     public void handleRequest_terminalState() {
         final CreateHandler handler = new CreateHandler();

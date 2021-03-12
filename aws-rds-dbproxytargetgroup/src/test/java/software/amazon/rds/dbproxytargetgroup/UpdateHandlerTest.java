@@ -12,9 +12,12 @@ import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.amazonaws.AmazonWebServiceResult;
+import com.amazonaws.ResponseMetadata;
 import com.amazonaws.services.rds.model.ConnectionPoolConfigurationInfo;
 import com.amazonaws.services.rds.model.DBProxy;
 import com.amazonaws.services.rds.model.DBProxyTarget;
@@ -87,7 +90,6 @@ public class UpdateHandlerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testModifyTargetGroup() {
         int connectionBorrowTimeout = 1;
         int maxConnectionsPercent = 25;
@@ -106,7 +108,8 @@ public class UpdateHandlerTest {
 
         DBProxyTargetGroup dbProxyTargetGroup = new DBProxyTargetGroup().withConnectionPoolConfig(connectionPoolConfigurationInfo);
         doReturn(new ModifyDBProxyTargetGroupResult().withDBProxyTargetGroup(dbProxyTargetGroup)).when(proxy)
-                .injectCredentialsAndInvoke(any(ModifyDBProxyTargetGroupRequest.class), any(Function.class));
+                .injectCredentialsAndInvoke(any(ModifyDBProxyTargetGroupRequest.class),
+                        ArgumentMatchers.<Function<ModifyDBProxyTargetGroupRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
 
 
         final CallbackContext context = CallbackContext.builder()
@@ -163,13 +166,13 @@ public class UpdateHandlerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testModifyNoConnectionPoolConfig() {
         DBProxy dbProxy = new DBProxy().withStatus("available");
         ImmutableList<String> clusterId = ImmutableList.of("clusterId");
         DBProxyTargetGroup dbProxyTargetGroup = new DBProxyTargetGroup();
         doReturn(new DescribeDBProxyTargetGroupsResult().withTargetGroups(dbProxyTargetGroup)).when(proxy)
-                .injectCredentialsAndInvoke(any(DescribeDBProxyTargetGroupsRequest.class), any(Function.class));
+                .injectCredentialsAndInvoke(any(DescribeDBProxyTargetGroupsRequest.class),
+                        ArgumentMatchers.<Function<DescribeDBProxyTargetGroupsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
         final CreateHandler handler = new CreateHandler();
 
         final ResourceModel model = ResourceModel.builder().dBClusterIdentifiers(clusterId).build();
@@ -254,13 +257,13 @@ public class UpdateHandlerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testRegister() {
         DBProxy dbProxy = new DBProxy().withStatus("available");
         DBProxyTargetGroup dbProxyTargetGroup = new DBProxyTargetGroup();
         DBProxyTarget dbProxyTarget = new DBProxyTarget();
         doReturn(new RegisterDBProxyTargetsResult().withDBProxyTargets(dbProxyTarget)).when(proxy)
-                .injectCredentialsAndInvoke(any(RegisterDBProxyTargetsRequest.class), any(Function.class));
+                .injectCredentialsAndInvoke(any(RegisterDBProxyTargetsRequest.class),
+                        ArgumentMatchers.<Function<RegisterDBProxyTargetsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
         final UpdateHandler handler = new UpdateHandler();
 
         ImmutableList<String> clusterId = ImmutableList.of("clusterId");
@@ -300,10 +303,10 @@ public class UpdateHandlerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testDeregister() {
         DBProxyTargetGroup dbProxyTargetGroup = new DBProxyTargetGroup();
-        doReturn(new DeregisterDBProxyTargetsResult()).when(proxy).injectCredentialsAndInvoke(any(DeregisterDBProxyTargetsRequest.class), any(Function.class));
+        doReturn(new DeregisterDBProxyTargetsResult()).when(proxy).injectCredentialsAndInvoke(any(DeregisterDBProxyTargetsRequest.class),
+                ArgumentMatchers.<Function<DeregisterDBProxyTargetsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
         final UpdateHandler handler = new UpdateHandler();
 
         ImmutableList<String> instanceId = ImmutableList.of("instanceId");
@@ -339,7 +342,6 @@ public class UpdateHandlerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testTargetHealth() {
         DBProxyTargetGroup defaultTargetGroup = new DBProxyTargetGroup();
         DBProxyTarget dbProxyTarget = new DBProxyTarget().withRdsResourceId("resourceId");
@@ -350,7 +352,8 @@ public class UpdateHandlerTest {
                                        .withType("RDS_INSTANCE")
                                        .withTargetHealth(new TargetHealth().withState(Constants.AVAILABLE_STATE));
 
-        doReturn(new DescribeDBProxyTargetsResult().withTargets(target)).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class), any(Function.class));
+        doReturn(new DescribeDBProxyTargetsResult().withTargets(target)).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class),
+                ArgumentMatchers.<Function<DescribeDBProxyTargetsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
         final CallbackContext context = CallbackContext.builder()
                                                        .targetGroupStatus(defaultTargetGroup)
                                                        .targets(targetList)

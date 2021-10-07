@@ -2,6 +2,7 @@ package software.amazon.rds.dbproxytargetgroup;
 
 import static software.amazon.rds.dbproxytargetgroup.Utility.validateHealth;
 
+import com.amazonaws.services.rds.model.DBProxyTargetGroupNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -17,8 +18,8 @@ import com.amazonaws.services.rds.model.DescribeDBProxyTargetsRequest;
 import com.amazonaws.services.rds.model.DescribeDBProxyTargetsResult;
 import com.amazonaws.services.rds.model.ModifyDBProxyTargetGroupRequest;
 import com.amazonaws.services.rds.model.RegisterDBProxyTargetsRequest;
-import com.google.common.collect.ImmutableList;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -62,14 +63,18 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
 
         // Update target-group settings
         if (callbackContext.getTargetGroupStatus() == null) {
-            return ProgressEvent.<ResourceModel, CallbackContext>builder()
-                           .resourceModel(newModel)
-                           .status(OperationStatus.IN_PROGRESS)
-                           .callbackContext(CallbackContext.builder()
-                                                           .targetGroupStatus(modifyProxyTargetGroup(oldModel, newModel))
-                                                           .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
-                                                           .build())
-                           .build();
+            try {
+                return ProgressEvent.<ResourceModel, CallbackContext>builder()
+                        .resourceModel(newModel)
+                        .status(OperationStatus.IN_PROGRESS)
+                        .callbackContext(CallbackContext.builder()
+                                .targetGroupStatus(modifyProxyTargetGroup(oldModel, newModel))
+                                .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
+                                .build())
+                        .build();
+            } catch (DBProxyTargetGroupNotFoundException e) {
+                return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.NotFound);
+            }
         }
 
         // Update registered databases

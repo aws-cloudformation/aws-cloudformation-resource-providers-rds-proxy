@@ -1,5 +1,6 @@
 package software.amazon.rds.dbproxy;
 
+import com.amazonaws.services.rds.model.DBProxyAlreadyExistsException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -56,17 +57,25 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
         }
 
         if (proxyStateSoFar == null) {
-            return ProgressEvent.<ResourceModel, CallbackContext>builder()
-                           .resourceModel(model)
-                           .status(OperationStatus.IN_PROGRESS)
-                           .callbackContext(CallbackContext.builder()
-                                                           .proxy(createProxy(model))
-                                                           .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
-                                                           .build())
-                           .build();
+            try {
+                return ProgressEvent.<ResourceModel, CallbackContext>builder()
+                        .resourceModel(model)
+                        .status(OperationStatus.IN_PROGRESS)
+                        .callbackContext(CallbackContext.builder()
+                                .proxy(createProxy(model))
+                                .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
+                                .build())
+                        .build();
+            } catch (DBProxyAlreadyExistsException e) {
+                return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.AlreadyExists);
+            }
         } else if (proxyStateSoFar.getStatus().equals(Constants.AVAILABLE_PROXY_STATE)) {
             model.setDBProxyArn(proxyStateSoFar.getDBProxyArn());
             model.setEndpoint(proxyStateSoFar.getEndpoint());
+            model.setVpcId(proxyStateSoFar.getVpcId());
+            model.setDebugLogging(proxyStateSoFar.getDebugLogging());
+            model.setIdleClientTimeout(proxyStateSoFar.getIdleClientTimeout());
+            model.setRequireTLS(proxyStateSoFar.getRequireTLS());
 
             return ProgressEvent.<ResourceModel, CallbackContext>builder()
                            .resourceModel(model)
@@ -80,6 +89,10 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
         } else {
             model.setDBProxyArn(proxyStateSoFar.getDBProxyArn());
             model.setEndpoint(proxyStateSoFar.getEndpoint());
+            model.setVpcId(proxyStateSoFar.getVpcId());
+            model.setDebugLogging(proxyStateSoFar.getDebugLogging());
+            model.setIdleClientTimeout(proxyStateSoFar.getIdleClientTimeout());
+            model.setRequireTLS(proxyStateSoFar.getRequireTLS());
 
             try {
                 Thread.sleep(Constants.POLL_RETRY_DELAY_IN_MS);

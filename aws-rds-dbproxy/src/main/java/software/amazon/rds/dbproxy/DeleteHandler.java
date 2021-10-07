@@ -8,6 +8,7 @@ import com.amazonaws.services.rds.model.DeleteDBProxyRequest;
 import com.amazonaws.services.rds.model.DeleteDBProxyResult;
 import com.amazonaws.services.rds.model.DescribeDBProxiesRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -46,7 +47,8 @@ public class DeleteHandler extends BaseHandler<CallbackContext> {
         }
 
         if (callbackContext.getProxy() == null) {
-            return ProgressEvent.<ResourceModel, CallbackContext>builder()
+            try {
+                return ProgressEvent.<ResourceModel, CallbackContext>builder()
                            .resourceModel(model)
                            .status(OperationStatus.IN_PROGRESS)
                            .callbackContext(CallbackContext.builder()
@@ -54,11 +56,13 @@ public class DeleteHandler extends BaseHandler<CallbackContext> {
                                                            .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
                                                            .build())
                            .build();
+            } catch (DBProxyNotFoundException e) {
+                return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.NotFound);
+            }
         } else if (callbackContext.isDeleted()) {
             return ProgressEvent.<ResourceModel, CallbackContext>builder()
-                           .resourceModel(model)
-                           .status(OperationStatus.SUCCESS)
-                           .build();
+                       .status(OperationStatus.SUCCESS)
+                       .build();
         } else {
             try {
                 Thread.sleep(Constants.POLL_RETRY_DELAY_IN_MS);
@@ -80,16 +84,11 @@ public class DeleteHandler extends BaseHandler<CallbackContext> {
     private DBProxy deleteProxy(String proxyName) {
         DeleteDBProxyRequest request = new DeleteDBProxyRequest().withDBProxyName(proxyName);
 
-        DeleteDBProxyResult result;
-        try {
-            result = clientProxy.injectCredentialsAndInvoke(request, rdsClient::deleteDBProxy);
-            if (result != null) {
-                return result.getDBProxy();
-            } else {
-                return null;
-            }
-        } catch (DBProxyNotFoundException e) {
-            return new DBProxy().withDBProxyName(proxyName);
+        DeleteDBProxyResult result = clientProxy.injectCredentialsAndInvoke(request, rdsClient::deleteDBProxy);
+        if (result != null) {
+            return result.getDBProxy();
+        } else {
+            return null;
         }
     }
 

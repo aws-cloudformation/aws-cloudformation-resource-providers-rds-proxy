@@ -1,12 +1,12 @@
 package software.amazon.rds.dbproxy;
 
-import com.amazonaws.services.rds.model.DBProxyNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 
 import com.amazonaws.services.rds.AmazonRDS;
 import com.amazonaws.services.rds.AmazonRDSClientBuilder;
 import com.amazonaws.services.rds.model.DBProxy;
+import com.amazonaws.services.rds.model.DBProxyNotFoundException;
 import com.amazonaws.services.rds.model.DescribeDBProxiesRequest;
 import com.amazonaws.services.rds.model.DescribeDBProxiesResult;
 import com.amazonaws.services.rds.model.ListTagsForResourceRequest;

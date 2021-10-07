@@ -125,11 +125,7 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
                 .withTags(tags);
 
         CreateDBProxyEndpointResult result = clientProxy.injectCredentialsAndInvoke(request, rdsClient::createDBProxyEndpoint);
-        if (result != null) {
-            return result.getDBProxyEndpoint();
-        } else {
-            return null;
-        }
+        return result.getDBProxyEndpoint();
     }
 
     private List<Tag> getTags(ResourceModel model) {

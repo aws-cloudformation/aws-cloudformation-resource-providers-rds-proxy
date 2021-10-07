@@ -85,11 +85,7 @@ public class DeleteHandler extends BaseHandler<CallbackContext> {
         DeleteDBProxyRequest request = new DeleteDBProxyRequest().withDBProxyName(proxyName);
 
         DeleteDBProxyResult result = clientProxy.injectCredentialsAndInvoke(request, rdsClient::deleteDBProxy);
-        if (result != null) {
-            return result.getDBProxy();
-        } else {
-            return null;
-        }
+        return result.getDBProxy();
     }
 
     private boolean doesProxyExist(String proxyName) {

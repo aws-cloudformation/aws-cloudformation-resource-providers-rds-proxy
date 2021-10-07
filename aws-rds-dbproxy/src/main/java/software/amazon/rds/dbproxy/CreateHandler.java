@@ -1,6 +1,5 @@
 package software.amazon.rds.dbproxy;
 
-import com.amazonaws.services.rds.model.DBProxyAlreadyExistsException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -9,11 +8,11 @@ import com.amazonaws.services.rds.AmazonRDSClientBuilder;
 import com.amazonaws.services.rds.model.CreateDBProxyRequest;
 import com.amazonaws.services.rds.model.CreateDBProxyResult;
 import com.amazonaws.services.rds.model.DBProxy;
+import com.amazonaws.services.rds.model.DBProxyAlreadyExistsException;
 import com.amazonaws.services.rds.model.DescribeDBProxiesRequest;
 import com.amazonaws.services.rds.model.DescribeDBProxiesResult;
 import com.amazonaws.services.rds.model.Tag;
 import com.amazonaws.services.rds.model.UserAuthConfig;
-import com.google.common.collect.ImmutableList;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;

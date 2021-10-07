@@ -2,7 +2,6 @@ package software.amazon.rds.dbproxytargetgroup;
 
 import static software.amazon.rds.dbproxytargetgroup.Utility.validateHealth;
 
-import com.amazonaws.services.rds.model.DBProxyTargetGroupNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -12,6 +11,7 @@ import com.amazonaws.services.rds.AmazonRDSClientBuilder;
 import com.amazonaws.services.rds.model.ConnectionPoolConfiguration;
 import com.amazonaws.services.rds.model.DBProxyTarget;
 import com.amazonaws.services.rds.model.DBProxyTargetGroup;
+import com.amazonaws.services.rds.model.DBProxyTargetGroupNotFoundException;
 import com.amazonaws.services.rds.model.DeregisterDBProxyTargetsRequest;
 import com.amazonaws.services.rds.model.DescribeDBProxyTargetGroupsRequest;
 import com.amazonaws.services.rds.model.DescribeDBProxyTargetsRequest;

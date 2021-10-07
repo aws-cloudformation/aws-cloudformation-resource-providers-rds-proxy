@@ -6,7 +6,6 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 
-import com.amazonaws.services.rds.model.DBProxyEndpointNotFoundException;
 import java.util.function.Function;
 
 import org.junit.jupiter.api.BeforeEach;

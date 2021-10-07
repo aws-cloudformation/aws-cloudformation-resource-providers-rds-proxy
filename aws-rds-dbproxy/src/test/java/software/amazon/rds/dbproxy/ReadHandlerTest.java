@@ -7,7 +7,6 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static software.amazon.rds.dbproxy.Matchers.assertThatModelsAreEqual;
 
-import com.amazonaws.services.rds.model.DBProxyNotFoundException;
 import java.util.List;
 import java.util.function.Function;
 
@@ -21,6 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.amazonaws.AmazonWebServiceResult;
 import com.amazonaws.ResponseMetadata;
 import com.amazonaws.services.rds.model.DBProxy;
+import com.amazonaws.services.rds.model.DBProxyNotFoundException;
 import com.amazonaws.services.rds.model.DescribeDBProxiesRequest;
 import com.amazonaws.services.rds.model.DescribeDBProxiesResult;
 import com.amazonaws.services.rds.model.ListTagsForResourceRequest;

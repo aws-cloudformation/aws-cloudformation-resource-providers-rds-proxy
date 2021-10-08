@@ -194,11 +194,7 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
                 .withVpcSecurityGroupIds(newModel.getVpcSecurityGroupIds());
 
         ModifyDBProxyEndpointResult result = clientProxy.injectCredentialsAndInvoke(request, rdsClient::modifyDBProxyEndpoint);
-        if (result != null) {
-            return result.getDBProxyEndpoint();
-        } else {
-            return null;
-        }
+        return result.getDBProxyEndpoint();
     }
 
     private DBProxyEndpoint updatedProxyEndpointProgress(String proxyEndpointName) {

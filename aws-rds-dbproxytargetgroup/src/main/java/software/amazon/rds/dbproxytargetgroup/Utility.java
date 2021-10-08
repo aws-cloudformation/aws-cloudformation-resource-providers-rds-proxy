@@ -5,12 +5,8 @@ import static software.amazon.rds.dbproxytargetgroup.Constants.RDS_INSTANCE;
 import static software.amazon.rds.dbproxytargetgroup.Constants.TRACKED_CLUSTER;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import com.amazonaws.services.rds.model.ConnectionPoolConfigurationInfo;
 import com.amazonaws.services.rds.model.DBProxyTarget;
@@ -23,6 +19,7 @@ public class Utility {
                    .builder()
                    .dBProxyName(targetGroup.getDBProxyName())
                    .targetGroupName(targetGroup.getTargetGroupName())
+                   .targetGroupArn(targetGroup.getTargetGroupArn())
                    .connectionPoolConfigurationInfo(resultToModel(targetGroup.getConnectionPoolConfig()))
                    .build();
     }

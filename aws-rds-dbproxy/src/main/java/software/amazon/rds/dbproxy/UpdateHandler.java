@@ -2,7 +2,6 @@ package software.amazon.rds.dbproxy;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -18,7 +17,6 @@ import com.amazonaws.services.rds.model.ModifyDBProxyResult;
 import com.amazonaws.services.rds.model.RemoveTagsFromResourceRequest;
 import com.amazonaws.services.rds.model.Tag;
 import com.amazonaws.services.rds.model.UserAuthConfig;
-import com.google.common.collect.ImmutableList;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -64,19 +62,21 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
             throw new RuntimeException(TIMED_OUT_MESSAGE);
         }
 
-
         // Update proxy settings
         if (proxyStateSoFar == null) {
-            return ProgressEvent.<ResourceModel, CallbackContext>builder()
-                           .resourceModel(newModel)
-                           .status(OperationStatus.IN_PROGRESS)
-                           .callbackContext(CallbackContext.builder()
-                                                           .proxy(updateProxySettings(oldModel, newModel))
-                                                           .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
-                                                           .build())
-                           .build();
+            try {
+                return ProgressEvent.<ResourceModel, CallbackContext>builder()
+                        .resourceModel(newModel)
+                        .status(OperationStatus.IN_PROGRESS)
+                        .callbackContext(CallbackContext.builder()
+                                .proxy(updateProxySettings(oldModel, newModel))
+                                .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
+                                .build())
+                        .build();
+            } catch (DBProxyNotFoundException e) {
+                return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.NotFound);
+            }
         }
-
 
         // Update tags
         if (!callbackContext.isTagsDeregistered()) {
@@ -105,6 +105,11 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
         }
 
         if (proxyStateSoFar.getStatus().equals(Constants.AVAILABLE_PROXY_STATE)) {
+            newModel.setVpcId(proxyStateSoFar.getVpcId());
+            newModel.setDebugLogging(proxyStateSoFar.getDebugLogging());
+            newModel.setIdleClientTimeout(proxyStateSoFar.getIdleClientTimeout());
+            newModel.setRequireTLS(proxyStateSoFar.getRequireTLS());
+
             return ProgressEvent.<ResourceModel, CallbackContext>builder()
                            .resourceModel(newModel)
                            .status(OperationStatus.SUCCESS)
@@ -189,17 +194,8 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
                                                .withRoleArn(newModel.getRoleArn())
                                                .withSecurityGroups(newModel.getVpcSecurityGroupIds());
 
-        try {
-            ModifyDBProxyResult result = clientProxy.injectCredentialsAndInvoke(request, rdsClient::modifyDBProxy);
-            if (result != null) {
-                return result.getDBProxy();
-            } else {
-                return null;
-            }
-        } catch (DBProxyNotFoundException e) {
-            throw new software.amazon.cloudformation.exceptions.ResourceNotFoundException(ResourceModel.TYPE_NAME,
-                                                                                          Objects.toString(oldModel.getDBProxyName()));
-        }
+        ModifyDBProxyResult result = clientProxy.injectCredentialsAndInvoke(request, rdsClient::modifyDBProxy);
+        return result.getDBProxy();
     }
 
     private DBProxy updatedProxyProgress(String proxyName) {

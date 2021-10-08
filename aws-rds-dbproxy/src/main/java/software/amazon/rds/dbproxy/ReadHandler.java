@@ -6,14 +6,15 @@ import java.util.List;
 import com.amazonaws.services.rds.AmazonRDS;
 import com.amazonaws.services.rds.AmazonRDSClientBuilder;
 import com.amazonaws.services.rds.model.DBProxy;
+import com.amazonaws.services.rds.model.DBProxyNotFoundException;
 import com.amazonaws.services.rds.model.DescribeDBProxiesRequest;
 import com.amazonaws.services.rds.model.DescribeDBProxiesResult;
 import com.amazonaws.services.rds.model.ListTagsForResourceRequest;
 import com.amazonaws.services.rds.model.ListTagsForResourceResult;
 import com.amazonaws.services.rds.model.Tag;
-import com.google.common.collect.ImmutableList;
 import software.amazon.cloudformation.exceptions.CfnNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -33,7 +34,12 @@ public class ReadHandler extends BaseHandler<CallbackContext> {
         clientProxy = proxy;
         rdsClient = AmazonRDSClientBuilder.defaultClient();
 
-        final ResourceModel model = describeDBProxy(request.getDesiredResourceState().getDBProxyName());
+        final ResourceModel model;
+        try {
+            model = describeDBProxy(request.getDesiredResourceState().getDBProxyName());
+        } catch (DBProxyNotFoundException | CfnNotFoundException e) {
+            return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.NotFound);
+        }
 
         return ProgressEvent.<ResourceModel, CallbackContext>builder()
                        .resourceModel(model)
@@ -52,7 +58,7 @@ public class ReadHandler extends BaseHandler<CallbackContext> {
             ListTagsForResourceRequest tagRequest = new ListTagsForResourceRequest().withResourceName(proxy.getDBProxyArn());
 
             final ListTagsForResourceResult tagResult = clientProxy.injectCredentialsAndInvoke(tagRequest, rdsClient::listTagsForResource);
-            if (tagResult != null && tagResult.getTagList()!= null) {
+            if (tagResult != null && tagResult.getTagList()!= null && tagResult.getTagList().size() > 0) {
                 resourceModel.setTags(convertTags(tagResult.getTagList()));
             }
             return resourceModel;

@@ -8,11 +8,11 @@ import com.amazonaws.services.rds.AmazonRDSClientBuilder;
 import com.amazonaws.services.rds.model.CreateDBProxyRequest;
 import com.amazonaws.services.rds.model.CreateDBProxyResult;
 import com.amazonaws.services.rds.model.DBProxy;
+import com.amazonaws.services.rds.model.DBProxyAlreadyExistsException;
 import com.amazonaws.services.rds.model.DescribeDBProxiesRequest;
 import com.amazonaws.services.rds.model.DescribeDBProxiesResult;
 import com.amazonaws.services.rds.model.Tag;
 import com.amazonaws.services.rds.model.UserAuthConfig;
-import com.google.common.collect.ImmutableList;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -56,17 +56,25 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
         }
 
         if (proxyStateSoFar == null) {
-            return ProgressEvent.<ResourceModel, CallbackContext>builder()
-                           .resourceModel(model)
-                           .status(OperationStatus.IN_PROGRESS)
-                           .callbackContext(CallbackContext.builder()
-                                                           .proxy(createProxy(model))
-                                                           .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
-                                                           .build())
-                           .build();
+            try {
+                return ProgressEvent.<ResourceModel, CallbackContext>builder()
+                        .resourceModel(model)
+                        .status(OperationStatus.IN_PROGRESS)
+                        .callbackContext(CallbackContext.builder()
+                                .proxy(createProxy(model))
+                                .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
+                                .build())
+                        .build();
+            } catch (DBProxyAlreadyExistsException e) {
+                return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.AlreadyExists);
+            }
         } else if (proxyStateSoFar.getStatus().equals(Constants.AVAILABLE_PROXY_STATE)) {
             model.setDBProxyArn(proxyStateSoFar.getDBProxyArn());
             model.setEndpoint(proxyStateSoFar.getEndpoint());
+            model.setVpcId(proxyStateSoFar.getVpcId());
+            model.setDebugLogging(proxyStateSoFar.getDebugLogging());
+            model.setIdleClientTimeout(proxyStateSoFar.getIdleClientTimeout());
+            model.setRequireTLS(proxyStateSoFar.getRequireTLS());
 
             return ProgressEvent.<ResourceModel, CallbackContext>builder()
                            .resourceModel(model)
@@ -80,6 +88,10 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
         } else {
             model.setDBProxyArn(proxyStateSoFar.getDBProxyArn());
             model.setEndpoint(proxyStateSoFar.getEndpoint());
+            model.setVpcId(proxyStateSoFar.getVpcId());
+            model.setDebugLogging(proxyStateSoFar.getDebugLogging());
+            model.setIdleClientTimeout(proxyStateSoFar.getIdleClientTimeout());
+            model.setRequireTLS(proxyStateSoFar.getRequireTLS());
 
             try {
                 Thread.sleep(Constants.POLL_RETRY_DELAY_IN_MS);
@@ -116,11 +128,7 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
                                                .withTags(tags);
 
         CreateDBProxyResult result = clientProxy.injectCredentialsAndInvoke(request, rdsClient::createDBProxy);
-        if (result != null) {
-            return result.getDBProxy();
-        } else {
-            return null;
-        }
+        return result.getDBProxy();
     }
 
     private List<Tag> getTags(ResourceModel model) {

@@ -28,7 +28,9 @@ public class ListHandler extends BaseHandler<CallbackContext> {
         clientProxy = proxy;
         rdsClient = AmazonRDSClientBuilder.defaultClient();
 
-        final List<ResourceModel> models = listProxyTargetGroups(request.getNextToken());
+        final List<ResourceModel> models = listProxyTargetGroups(
+                request.getDesiredResourceState().getDBProxyName(),
+                request.getNextToken());
 
         return ProgressEvent.<ResourceModel, CallbackContext>builder()
                        .resourceModels(models)
@@ -36,8 +38,11 @@ public class ListHandler extends BaseHandler<CallbackContext> {
                        .build();
     }
 
-    private List<ResourceModel> listProxyTargetGroups(String nextToken) {
-        DescribeDBProxyTargetGroupsRequest request = new DescribeDBProxyTargetGroupsRequest().withMaxRecords(MAX_RESULTS).withMarker(nextToken);
+    private List<ResourceModel> listProxyTargetGroups(String dbProxyName, String nextToken) {
+        DescribeDBProxyTargetGroupsRequest request = new DescribeDBProxyTargetGroupsRequest()
+                .withDBProxyName(dbProxyName)
+                .withMaxRecords(MAX_RESULTS)
+                .withMarker(nextToken);
 
         DescribeDBProxyTargetGroupsResult result = clientProxy.injectCredentialsAndInvoke(request, rdsClient::describeDBProxyTargetGroups);
 

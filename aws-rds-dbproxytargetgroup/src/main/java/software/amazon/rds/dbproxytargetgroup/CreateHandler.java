@@ -13,14 +13,14 @@ import com.amazonaws.services.rds.model.DBProxy;
 import com.amazonaws.services.rds.model.DBProxyNotFoundException;
 import com.amazonaws.services.rds.model.DBProxyTarget;
 import com.amazonaws.services.rds.model.DBProxyTargetGroup;
-import com.amazonaws.services.rds.model.DescribeDBProxiesRequest;
-import com.amazonaws.services.rds.model.DescribeDBProxiesResult;
+import com.amazonaws.services.rds.model.DBProxyTargetGroupNotFoundException;
 import com.amazonaws.services.rds.model.DescribeDBProxyTargetGroupsRequest;
 import com.amazonaws.services.rds.model.DescribeDBProxyTargetsRequest;
 import com.amazonaws.services.rds.model.DescribeDBProxyTargetsResult;
 import com.amazonaws.services.rds.model.ModifyDBProxyTargetGroupRequest;
 import com.amazonaws.services.rds.model.RegisterDBProxyTargetsRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -52,7 +52,11 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
                                                                               .build());
 
         // This Lambda will continually be re-invoked with the current state of the proxy, finally succeeding when state stabilizes.
-        return createTargetGroupAndUpdateProgress(model, currentContext);
+        try {
+            return createTargetGroupAndUpdateProgress(model, currentContext);
+        } catch (DBProxyNotFoundException | DBProxyTargetGroupNotFoundException e) {
+            return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.NotFound);
+        }
     }
 
     private ProgressEvent<ResourceModel, CallbackContext> createTargetGroupAndUpdateProgress(ResourceModel model,

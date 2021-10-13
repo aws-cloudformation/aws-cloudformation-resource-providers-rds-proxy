@@ -25,6 +25,7 @@ import com.amazonaws.services.rds.model.DBProxy;
 import com.amazonaws.services.rds.model.DBProxyNotFoundException;
 import com.amazonaws.services.rds.model.DBProxyTarget;
 import com.amazonaws.services.rds.model.DBProxyTargetGroup;
+import com.amazonaws.services.rds.model.DBProxyTargetGroupNotFoundException;
 import com.amazonaws.services.rds.model.DescribeDBProxyTargetGroupsRequest;
 import com.amazonaws.services.rds.model.DescribeDBProxyTargetGroupsResult;
 import com.amazonaws.services.rds.model.DescribeDBProxyTargetsRequest;
@@ -36,6 +37,7 @@ import com.amazonaws.services.rds.model.RegisterDBProxyTargetsResult;
 import com.amazonaws.services.rds.model.TargetHealth;
 import com.google.common.collect.ImmutableList;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.OperationStatus;
 import software.amazon.cloudformation.proxy.ProgressEvent;
@@ -541,12 +543,28 @@ public class CreateHandlerTest {
                                                        .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
                                                        .build();
 
-        try {
-            handler.handleRequest(proxy, request, context, logger);
-            fail("Expect ProxyNotFound exception");
-        } catch (Exception e) {
-            assertThat(e instanceof DBProxyNotFoundException);
-        }
+        ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, context, logger);
+        assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.NotFound);
+    }
+
+    @Test
+    public void testProxyTargetGroupDoesNotExist() {
+        doThrow(new DBProxyTargetGroupNotFoundException("")).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetGroupsRequest.class),
+                ArgumentMatchers.<Function<DescribeDBProxyTargetGroupsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        final CreateHandler handler = new CreateHandler();
+
+        final ResourceModel model = ResourceModel.builder().build();
+
+        final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                .desiredResourceState(model)
+                .build();
+
+        final CallbackContext context = CallbackContext.builder()
+                .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
+                .build();
+
+        ProgressEvent<ResourceModel, CallbackContext> response = handler.handleRequest(proxy, request, context, logger);
+        assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.NotFound);
     }
 
     @Test

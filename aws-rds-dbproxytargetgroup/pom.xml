@@ -72,7 +72,7 @@
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-rds</artifactId>
-            <version>1.11.795</version>
+            <version>[1.12.364, 2.0.0)</version>
         </dependency>
     </dependencies>
 

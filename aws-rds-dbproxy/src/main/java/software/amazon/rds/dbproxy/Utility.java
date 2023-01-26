@@ -43,7 +43,6 @@ public class Utility {
                 .description(auth.getDescription())
                 .iAMAuth(auth.getIAMAuth())
                 .secretArn(auth.getSecretArn())
-                .userName(auth.getUserName())
                 .clientPasswordAuthType(auth.getClientPasswordAuthType())
                 .build();
     }
@@ -61,7 +60,6 @@ public class Utility {
                     .withDescription(auth.getDescription())
                     .withIAMAuth(auth.getIAMAuth())
                     .withSecretArn(auth.getSecretArn())
-                    .withUserName(auth.getUserName())
                     .withClientPasswordAuthType(auth.getClientPasswordAuthType());
             userAuthConfigList.add(uac);
         }

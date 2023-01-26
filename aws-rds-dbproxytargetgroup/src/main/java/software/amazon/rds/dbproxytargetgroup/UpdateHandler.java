@@ -211,9 +211,12 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
     }
 
     private boolean checkTargetHealth(ResourceModel model) {
+        String proxyName = model.getDBProxyName();
+        String targetGroupName = Optional.ofNullable(model.getTargetGroupName()).orElse("default");
+
         DescribeDBProxyTargetsRequest describeDBProxyTargetsRequest = new DescribeDBProxyTargetsRequest()
-                                                                              .withDBProxyName(model.getDBProxyName())
-                                                                              .withTargetGroupName(model.getTargetGroupName());
+                                                                              .withDBProxyName(proxyName)
+                                                                              .withTargetGroupName(targetGroupName);
 
         DescribeDBProxyTargetsResult describeResult = clientProxy.injectCredentialsAndInvoke(describeDBProxyTargetsRequest, rdsClient::describeDBProxyTargets);
         return validateHealth(describeResult);

@@ -96,8 +96,7 @@
     "/properties/DBProxyEndpointArn",
     "/properties/Endpoint",
     "/properties/VpcId",
-    "/properties/IsDefault",
-    "/properties/TargetRole"
+    "/properties/IsDefault"
   ],
   "createOnlyProperties": [
     "/properties/DBProxyName",

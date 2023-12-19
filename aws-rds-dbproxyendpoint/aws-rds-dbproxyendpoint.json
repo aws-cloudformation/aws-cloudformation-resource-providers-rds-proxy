@@ -104,6 +104,13 @@
     "/properties/VpcSubnetIds",
     "/properties/TargetRole"
   ],
+  "tagging": {
+    "taggable": true,
+    "tagOnCreate": true,
+    "tagUpdatable": true,
+    "cloudFormationSystemTags": false,
+    "tagProperty": "/properties/Tags"
+  },
   "primaryIdentifier": [
     "/properties/DBProxyEndpointName"
   ],

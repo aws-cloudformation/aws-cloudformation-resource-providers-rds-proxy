@@ -87,11 +87,10 @@
     "/properties/TargetGroupName"
   ],
   "tagging": {
-    "taggable": true,
-    "tagOnCreate": true,
-    "tagUpdatable": true,
-    "cloudFormationSystemTags": false,
-    "tagProperty": "/properties/Tags"
+    "taggable": false,
+    "tagOnCreate": false,
+    "tagUpdatable": false,
+    "cloudFormationSystemTags": false
   },
   "primaryIdentifier": [
     "/properties/TargetGroupArn"

@@ -15,14 +15,12 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.amazonaws.AmazonWebServiceResult;
-import com.amazonaws.ResponseMetadata;
-import com.amazonaws.services.rds.model.CreateDBProxyEndpointRequest;
-import com.amazonaws.services.rds.model.CreateDBProxyEndpointResult;
-import com.amazonaws.services.rds.model.DBProxyEndpoint;
-import com.amazonaws.services.rds.model.DBProxyEndpointAlreadyExistsException;
-import com.amazonaws.services.rds.model.DescribeDBProxyEndpointsRequest;
-import com.amazonaws.services.rds.model.DescribeDBProxyEndpointsResult;
+import software.amazon.awssdk.services.rds.model.CreateDbProxyEndpointRequest;
+import software.amazon.awssdk.services.rds.model.CreateDbProxyEndpointResponse;
+import software.amazon.awssdk.services.rds.model.DBProxyEndpoint;
+import software.amazon.awssdk.services.rds.model.DbProxyEndpointAlreadyExistsException;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyEndpointsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyEndpointsResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -47,10 +45,10 @@ public class CreateHandlerTest {
 
     @Test
     public void handleRequest_InitialRunCreateProxyEndpoint() {
-        DBProxyEndpoint dbProxyEndpoint = new DBProxyEndpoint().withStatus("creating");
-        doReturn(new CreateDBProxyEndpointResult().withDBProxyEndpoint(dbProxyEndpoint)).when(proxy)
-                .injectCredentialsAndInvoke(any(CreateDBProxyEndpointRequest.class),
-                        ArgumentMatchers.<Function<CreateDBProxyEndpointRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        DBProxyEndpoint dbProxyEndpoint = DBProxyEndpoint.builder().status("creating").build();
+        doReturn(CreateDbProxyEndpointResponse.builder().dbProxyEndpoint(dbProxyEndpoint).build()).when(proxy)
+                .injectCredentialsAndInvokeV2(any(CreateDbProxyEndpointRequest.class),
+                        ArgumentMatchers.<Function<CreateDbProxyEndpointRequest, CreateDbProxyEndpointResponse>>any());
 
         final CreateHandler handler = new CreateHandler();
 
@@ -83,9 +81,9 @@ public class CreateHandlerTest {
 
     @Test
     public void handleRequest_CreateProxyEndpointAlreadyExists() {
-        DBProxyEndpointAlreadyExistsException exception = new DBProxyEndpointAlreadyExistsException(TestConstants.ALREADY_EXIST_ERROR_MESSAGE);
-        doThrow(exception).when(proxy).injectCredentialsAndInvoke(any(CreateDBProxyEndpointRequest.class),
-                ArgumentMatchers.<Function<CreateDBProxyEndpointRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        DbProxyEndpointAlreadyExistsException exception = DbProxyEndpointAlreadyExistsException.builder().message(TestConstants.ALREADY_EXIST_ERROR_MESSAGE).build();
+        doThrow(exception).when(proxy).injectCredentialsAndInvokeV2(any(CreateDbProxyEndpointRequest.class),
+                ArgumentMatchers.<Function<CreateDbProxyEndpointRequest, CreateDbProxyEndpointResponse>>any());
 
         final CreateHandler handler = new CreateHandler();
 
@@ -222,10 +220,10 @@ public class CreateHandlerTest {
 
     @Test
     public void handleRequest_Creating() {
-        DBProxyEndpoint dbProxyEndpoint = new DBProxyEndpoint().withStatus("creating");
-        doReturn(new DescribeDBProxyEndpointsResult().withDBProxyEndpoints(dbProxyEndpoint)).when(proxy)
-                .injectCredentialsAndInvoke(any(DescribeDBProxyEndpointsRequest.class),
-                        ArgumentMatchers.<Function<DescribeDBProxyEndpointsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        DBProxyEndpoint dbProxyEndpoint = DBProxyEndpoint.builder().status("creating").build();
+        doReturn(DescribeDbProxyEndpointsResponse.builder().dbProxyEndpoints(dbProxyEndpoint).build()).when(proxy)
+                .injectCredentialsAndInvokeV2(any(DescribeDbProxyEndpointsRequest.class),
+                        ArgumentMatchers.<Function<DescribeDbProxyEndpointsRequest, DescribeDbProxyEndpointsResponse>>any());
 
         final CreateHandler handler = new CreateHandler();
 
@@ -254,7 +252,7 @@ public class CreateHandlerTest {
 
     @Test
     public void handleRequest_Available() {
-        DBProxyEndpoint dbProxyEndpoint = new DBProxyEndpoint().withStatus("available");
+        DBProxyEndpoint dbProxyEndpoint = DBProxyEndpoint.builder().status("available").build();
 
         final CreateHandler handler = new CreateHandler();
 
@@ -293,7 +291,7 @@ public class CreateHandlerTest {
 
         final CallbackContext context = CallbackContext.builder()
                 .stabilizationRetriesRemaining(60)
-                .proxyEndpoint(new DBProxyEndpoint().withStatus("incompatible-network"))
+                .proxyEndpoint(DBProxyEndpoint.builder().status("incompatible-network").build())
                 .build();
 
         final ProgressEvent<ResourceModel, CallbackContext> response
@@ -321,7 +319,7 @@ public class CreateHandlerTest {
 
         final CallbackContext context = CallbackContext.builder()
                 .stabilizationRetriesRemaining(0)
-                .proxyEndpoint(new DBProxyEndpoint().withStatus("creating"))
+                .proxyEndpoint(DBProxyEndpoint.builder().status("creating").build())
                 .build();
 
         try {

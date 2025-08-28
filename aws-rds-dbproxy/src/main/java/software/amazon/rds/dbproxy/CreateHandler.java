@@ -3,16 +3,15 @@ package software.amazon.rds.dbproxy;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.amazonaws.services.rds.AmazonRDS;
-import com.amazonaws.services.rds.AmazonRDSClientBuilder;
-import com.amazonaws.services.rds.model.CreateDBProxyRequest;
-import com.amazonaws.services.rds.model.CreateDBProxyResult;
-import com.amazonaws.services.rds.model.DBProxy;
-import com.amazonaws.services.rds.model.DBProxyAlreadyExistsException;
-import com.amazonaws.services.rds.model.DescribeDBProxiesRequest;
-import com.amazonaws.services.rds.model.DescribeDBProxiesResult;
-import com.amazonaws.services.rds.model.Tag;
-import com.amazonaws.services.rds.model.UserAuthConfig;
+import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.CreateDbProxyRequest;
+import software.amazon.awssdk.services.rds.model.CreateDbProxyResponse;
+import software.amazon.awssdk.services.rds.model.DBProxy;
+import software.amazon.awssdk.services.rds.model.DbProxyAlreadyExistsException;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxiesRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxiesResponse;
+import software.amazon.awssdk.services.rds.model.Tag;
+import software.amazon.awssdk.services.rds.model.UserAuthConfig;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -24,7 +23,7 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
     public static final String TIMED_OUT_MESSAGE = "Timed out waiting for proxy to become available.";
 
     private AmazonWebServicesClientProxy clientProxy;
-    private AmazonRDS rdsClient;
+    private RdsClient rdsClient;
 
     @Override
     public ProgressEvent<ResourceModel, CallbackContext> handleRequest(
@@ -36,8 +35,7 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
         final ResourceModel model = request.getDesiredResourceState();
 
         clientProxy = proxy;
-        rdsClient = AmazonRDSClientBuilder.defaultClient();
-
+        rdsClient = RdsClient.create();
         final CallbackContext currentContext = callbackContext == null ?
                                                CallbackContext.builder().stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES).build() :
                                                callbackContext;
@@ -65,33 +63,33 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
                                 .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
                                 .build())
                         .build();
-            } catch (DBProxyAlreadyExistsException e) {
+            } catch (DbProxyAlreadyExistsException e) {
                 return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.AlreadyExists);
             }
-        } else if (proxyStateSoFar.getStatus().equals(Constants.AVAILABLE_PROXY_STATE)) {
-            model.setDBProxyArn(proxyStateSoFar.getDBProxyArn());
-            model.setEndpoint(proxyStateSoFar.getEndpoint());
-            model.setVpcId(proxyStateSoFar.getVpcId());
-            model.setDebugLogging(proxyStateSoFar.getDebugLogging());
-            model.setIdleClientTimeout(proxyStateSoFar.getIdleClientTimeout());
-            model.setRequireTLS(proxyStateSoFar.getRequireTLS());
+        } else if (proxyStateSoFar.status().toString().equals(Constants.AVAILABLE_PROXY_STATE)) {
+            model.setDBProxyArn(proxyStateSoFar.dbProxyArn());
+            model.setEndpoint(proxyStateSoFar.endpoint());
+            model.setVpcId(proxyStateSoFar.vpcId());
+            model.setDebugLogging(proxyStateSoFar.debugLogging());
+            model.setIdleClientTimeout(proxyStateSoFar.idleClientTimeout());
+            model.setRequireTLS(proxyStateSoFar.requireTLS());
 
             return ProgressEvent.<ResourceModel, CallbackContext>builder()
                            .resourceModel(model)
                            .status(OperationStatus.SUCCESS)
                            .build();
-        } else if (Constants.TERMINAL_FAILURE_STATES.contains(proxyStateSoFar.getStatus())) {
+        } else if (Constants.TERMINAL_FAILURE_STATES.contains(proxyStateSoFar.status().toString())) {
             return ProgressEvent.<ResourceModel, CallbackContext>builder()
                            .status(OperationStatus.FAILED)
                            .errorCode(HandlerErrorCode.NotFound)
                            .build();
         } else {
-            model.setDBProxyArn(proxyStateSoFar.getDBProxyArn());
-            model.setEndpoint(proxyStateSoFar.getEndpoint());
-            model.setVpcId(proxyStateSoFar.getVpcId());
-            model.setDebugLogging(proxyStateSoFar.getDebugLogging());
-            model.setIdleClientTimeout(proxyStateSoFar.getIdleClientTimeout());
-            model.setRequireTLS(proxyStateSoFar.getRequireTLS());
+            model.setDBProxyArn(proxyStateSoFar.dbProxyArn());
+            model.setEndpoint(proxyStateSoFar.endpoint());
+            model.setVpcId(proxyStateSoFar.vpcId());
+            model.setDebugLogging(proxyStateSoFar.debugLogging());
+            model.setIdleClientTimeout(proxyStateSoFar.idleClientTimeout());
+            model.setRequireTLS(proxyStateSoFar.requireTLS());
 
             try {
                 Thread.sleep(Constants.POLL_RETRY_DELAY_IN_MS);
@@ -99,7 +97,7 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
                 throw new RuntimeException(e);
             }
 
-            DBProxy proxy = updatedProxyProgress(proxyStateSoFar.getDBProxyName());
+            DBProxy proxy = updatedProxyProgress(proxyStateSoFar.dbProxyName());
             return ProgressEvent.<ResourceModel, CallbackContext>builder()
                            .resourceModel(model)
                            .status(OperationStatus.IN_PROGRESS)
@@ -115,20 +113,21 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
         List<UserAuthConfig> userAuthConfig = Utility.getUserAuthConfigs(model);
         List<Tag> tags = getTags(model);
 
-        CreateDBProxyRequest request = new CreateDBProxyRequest()
-                                               .withAuth(userAuthConfig)
-                                               .withDBProxyName(model.getDBProxyName())
-                                               .withDebugLogging(model.getDebugLogging())
-                                               .withEngineFamily(model.getEngineFamily())
-                                               .withIdleClientTimeout(model.getIdleClientTimeout())
-                                               .withRequireTLS(model.getRequireTLS())
-                                               .withRoleArn(model.getRoleArn())
-                                               .withVpcSecurityGroupIds(model.getVpcSecurityGroupIds())
-                                               .withVpcSubnetIds(model.getVpcSubnetIds())
-                                               .withTags(tags);
+        CreateDbProxyRequest request = CreateDbProxyRequest.builder()
+                .auth(userAuthConfig)
+                .dbProxyName(model.getDBProxyName())
+                .debugLogging(model.getDebugLogging())
+                .engineFamily(model.getEngineFamily())
+                .idleClientTimeout(model.getIdleClientTimeout())
+                .requireTLS(model.getRequireTLS())
+                .roleArn(model.getRoleArn())
+                .vpcSecurityGroupIds(model.getVpcSecurityGroupIds())
+                .vpcSubnetIds(model.getVpcSubnetIds())
+                .tags(tags)
+                .build();
 
-        CreateDBProxyResult result = clientProxy.injectCredentialsAndInvoke(request, rdsClient::createDBProxy);
-        return result.getDBProxy();
+        CreateDbProxyResponse response = clientProxy.injectCredentialsAndInvokeV2(request, rdsClient::createDBProxy);
+        return response.dbProxy();
     }
 
     private List<Tag> getTags(ResourceModel model) {
@@ -139,21 +138,24 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
         }
 
         for(TagFormat tag : model.getTags()){
-            Tag t = new Tag().withKey(tag.getKey()).withValue(tag.getValue());
+            Tag t = Tag.builder()
+                    .key(tag.getKey())
+                    .value(tag.getValue())
+                    .build();
             tags.add(t);
         }
         return tags;
     }
 
     private DBProxy updatedProxyProgress(String proxyName) {
-        DescribeDBProxiesRequest describeDBProxiesRequest;
-        DescribeDBProxiesResult describeDBProxiesResult;
+        DescribeDbProxiesRequest describeDBProxiesRequest = DescribeDbProxiesRequest.builder()
+                .dbProxyName(proxyName)
+                .build();
 
-        describeDBProxiesRequest = new DescribeDBProxiesRequest().withDBProxyName(proxyName);
-        describeDBProxiesResult = clientProxy.injectCredentialsAndInvoke(describeDBProxiesRequest, rdsClient::describeDBProxies);
-        return describeDBProxiesResult.getDBProxies()
+        DescribeDbProxiesResponse describeDbProxiesResponse = clientProxy.injectCredentialsAndInvokeV2(describeDBProxiesRequest, rdsClient::describeDBProxies);
+        return describeDbProxiesResponse.dbProxies()
                                       .stream()
                                       .findFirst()
-                                      .orElse(new DBProxy());
+                                      .orElse(DBProxy.builder().build());
     }
 }

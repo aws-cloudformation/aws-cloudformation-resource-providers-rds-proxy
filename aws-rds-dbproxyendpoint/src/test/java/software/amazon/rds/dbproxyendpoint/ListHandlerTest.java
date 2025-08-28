@@ -16,12 +16,10 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.amazonaws.AmazonWebServiceResult;
-import com.amazonaws.ResponseMetadata;
-import com.amazonaws.services.rds.model.DBProxyEndpoint;
-import com.amazonaws.services.rds.model.DescribeDBProxyEndpointsRequest;
-import com.amazonaws.services.rds.model.DescribeDBProxyEndpointsResult;
 import com.google.common.collect.ImmutableList;
+import software.amazon.awssdk.services.rds.model.DBProxyEndpoint;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyEndpointsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyEndpointsResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.OperationStatus;
@@ -49,14 +47,14 @@ public class ListHandlerTest {
 
         final ResourceModel model = ResourceModel.builder().build();
 
-        DBProxyEndpoint proxyEndpoint1 = new DBProxyEndpoint().withDBProxyEndpointName("proxyEndpoint1");
-        DBProxyEndpoint proxyEndpoint2 = new DBProxyEndpoint().withDBProxyEndpointName("proxyEndpoint2");
+        DBProxyEndpoint proxyEndpoint1 = DBProxyEndpoint.builder().dbProxyEndpointName("proxyEndpoint1").build();
+        DBProxyEndpoint proxyEndpoint2 = DBProxyEndpoint.builder().dbProxyEndpointName("proxyEndpoint2").build();
         final List<DBProxyEndpoint> existingProxyEndpoints = ImmutableList.of(proxyEndpoint1, proxyEndpoint2);
 
-        doReturn(new DescribeDBProxyEndpointsResult().withDBProxyEndpoints(existingProxyEndpoints))
+        doReturn(DescribeDbProxyEndpointsResponse.builder().dbProxyEndpoints(existingProxyEndpoints).build())
                 .when(proxy)
-                .injectCredentialsAndInvoke(any(DescribeDBProxyEndpointsRequest.class),
-                        ArgumentMatchers.<Function<DescribeDBProxyEndpointsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+                .injectCredentialsAndInvokeV2(any(DescribeDbProxyEndpointsRequest.class),
+                        ArgumentMatchers.<Function<DescribeDbProxyEndpointsRequest, DescribeDbProxyEndpointsResponse>>any());
 
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()

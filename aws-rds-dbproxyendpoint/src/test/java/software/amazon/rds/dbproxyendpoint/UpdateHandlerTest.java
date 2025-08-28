@@ -18,16 +18,16 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.amazonaws.AmazonWebServiceResult;
-import com.amazonaws.ResponseMetadata;
-import com.amazonaws.services.rds.model.AddTagsToResourceRequest;
-import com.amazonaws.services.rds.model.DBProxyEndpoint;
-import com.amazonaws.services.rds.model.DBProxyEndpointNotFoundException;
-import com.amazonaws.services.rds.model.ModifyDBProxyEndpointRequest;
-import com.amazonaws.services.rds.model.ModifyDBProxyEndpointResult;
-import com.amazonaws.services.rds.model.RemoveTagsFromResourceRequest;
-import com.amazonaws.services.rds.model.Tag;
 import com.google.common.collect.ImmutableList;
+import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
+import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
+import software.amazon.awssdk.services.rds.model.DBProxyEndpoint;
+import software.amazon.awssdk.services.rds.model.DbProxyEndpointNotFoundException;
+import software.amazon.awssdk.services.rds.model.ModifyDbProxyEndpointRequest;
+import software.amazon.awssdk.services.rds.model.ModifyDbProxyEndpointResponse;
+import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
+import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceResponse;
+import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -52,7 +52,7 @@ public class UpdateHandlerTest {
 
     @Test
     public void handleRequest_SimpleSuccess() {
-        DBProxyEndpoint dbProxyEndpoint = new DBProxyEndpoint().withStatus(AVAILABLE_ENDPOINT_STATE);
+        DBProxyEndpoint dbProxyEndpoint = DBProxyEndpoint.builder().status(AVAILABLE_ENDPOINT_STATE).build();
         final CallbackContext context = CallbackContext.builder()
                 .proxyEndpoint(dbProxyEndpoint)
                 .stabilizationRetriesRemaining(1)
@@ -84,9 +84,11 @@ public class UpdateHandlerTest {
 
     @Test
     public void testModifyNonExistProxyEndpoint() {
-        DBProxyEndpointNotFoundException exception = new DBProxyEndpointNotFoundException(TestConstants.NOT_FOUND_ERROR_MESSAGE);
-        doThrow(exception).when(proxy).injectCredentialsAndInvoke(any(ModifyDBProxyEndpointRequest.class),
-                ArgumentMatchers.<Function<ModifyDBProxyEndpointRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        DbProxyEndpointNotFoundException exception = DbProxyEndpointNotFoundException.builder()
+                .message(TestConstants.NOT_FOUND_ERROR_MESSAGE)
+                .build();
+        doThrow(exception).when(proxy).injectCredentialsAndInvokeV2(any(ModifyDbProxyEndpointRequest.class),
+                ArgumentMatchers.<Function<ModifyDbProxyEndpointRequest, ModifyDbProxyEndpointResponse>>any());
 
         final CallbackContext context = CallbackContext.builder()
                 .stabilizationRetriesRemaining(1)
@@ -233,10 +235,10 @@ public class UpdateHandlerTest {
 
     @Test
     public void testModifyProxyEndpoint() {
-        DBProxyEndpoint dbProxyEndpoint = new DBProxyEndpoint().withStatus(AVAILABLE_ENDPOINT_STATE);
-        doReturn(new ModifyDBProxyEndpointResult().withDBProxyEndpoint(dbProxyEndpoint))
-                .when(proxy).injectCredentialsAndInvoke(any(ModifyDBProxyEndpointRequest.class),
-                ArgumentMatchers.<Function<ModifyDBProxyEndpointRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        DBProxyEndpoint dbProxyEndpoint = DBProxyEndpoint.builder().status(AVAILABLE_ENDPOINT_STATE).build();
+        doReturn(ModifyDbProxyEndpointResponse.builder().dbProxyEndpoint(dbProxyEndpoint).build())
+                .when(proxy).injectCredentialsAndInvokeV2(any(ModifyDbProxyEndpointRequest.class),
+                        ArgumentMatchers.<Function<ModifyDbProxyEndpointRequest, ModifyDbProxyEndpointResponse>>any());
 
         final CallbackContext context = CallbackContext.builder()
                 .stabilizationRetriesRemaining(1)
@@ -271,7 +273,7 @@ public class UpdateHandlerTest {
 
     @Test
     public void testDeregisterTags() {
-        DBProxyEndpoint dbProxyEndpoint = new DBProxyEndpoint().withStatus(AVAILABLE_ENDPOINT_STATE);
+        DBProxyEndpoint dbProxyEndpoint = DBProxyEndpoint.builder().status(AVAILABLE_ENDPOINT_STATE).build();
         final CallbackContext context = CallbackContext.builder()
                 .stabilizationRetriesRemaining(1)
                 .proxyEndpoint(dbProxyEndpoint)
@@ -311,15 +313,15 @@ public class UpdateHandlerTest {
         assertThat(response.getErrorCode()).isNull();
 
         ArgumentCaptor<RemoveTagsFromResourceRequest> captor = ArgumentCaptor.forClass(RemoveTagsFromResourceRequest.class);
-        verify(proxy).injectCredentialsAndInvoke(captor.capture(),
-                ArgumentMatchers.<Function<RemoveTagsFromResourceRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        verify(proxy).injectCredentialsAndInvokeV2(captor.capture(),
+                ArgumentMatchers.<Function<RemoveTagsFromResourceRequest, RemoveTagsFromResourceResponse>>any());
         RemoveTagsFromResourceRequest removeTagsRequest = captor.getValue();
-        assertThat(removeTagsRequest.getTagKeys().size()).isEqualTo(2);
+        assertThat(removeTagsRequest.tagKeys().size()).isEqualTo(2);
     }
 
     @Test
     public void testRegisterTags() {
-        DBProxyEndpoint dbProxyEndpoint = new DBProxyEndpoint().withStatus(AVAILABLE_ENDPOINT_STATE);
+        DBProxyEndpoint dbProxyEndpoint = DBProxyEndpoint.builder().status(AVAILABLE_ENDPOINT_STATE).build();
         final CallbackContext context = CallbackContext.builder()
                 .stabilizationRetriesRemaining(1)
                 .tagsDeregistered(true)
@@ -362,15 +364,15 @@ public class UpdateHandlerTest {
         assertThat(response.getErrorCode()).isNull();
 
         ArgumentCaptor<AddTagsToResourceRequest> captor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
-        verify(proxy).injectCredentialsAndInvoke(captor.capture(),
-                ArgumentMatchers.<Function<AddTagsToResourceRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        verify(proxy).injectCredentialsAndInvokeV2(captor.capture(),
+                ArgumentMatchers.<Function<AddTagsToResourceRequest, AddTagsToResourceResponse>>any());
         AddTagsToResourceRequest removeTagsRequest = captor.getValue();
-        assertThat(removeTagsRequest.getTags().size()).isEqualTo(2);
+        assertThat(removeTagsRequest.tags().size()).isEqualTo(2);
     }
 
     @Test
     public void testChangedTagValue_deregister() {
-        DBProxyEndpoint dbProxyEndpoint = new DBProxyEndpoint().withStatus(AVAILABLE_ENDPOINT_STATE);
+        DBProxyEndpoint dbProxyEndpoint = DBProxyEndpoint.builder().status(AVAILABLE_ENDPOINT_STATE).build();
         final CallbackContext context = CallbackContext.builder()
                 .stabilizationRetriesRemaining(1)
                 .proxyEndpoint(dbProxyEndpoint)
@@ -415,16 +417,16 @@ public class UpdateHandlerTest {
         assertThat(response.getErrorCode()).isNull();
 
         ArgumentCaptor<RemoveTagsFromResourceRequest> captor = ArgumentCaptor.forClass(RemoveTagsFromResourceRequest.class);
-        verify(proxy).injectCredentialsAndInvoke(captor.capture(),
-                ArgumentMatchers.<Function<RemoveTagsFromResourceRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        verify(proxy).injectCredentialsAndInvokeV2(captor.capture(),
+                ArgumentMatchers.<Function<RemoveTagsFromResourceRequest, RemoveTagsFromResourceResponse>>any());
         RemoveTagsFromResourceRequest removeTagsRequest = captor.getValue();
-        assertThat(removeTagsRequest.getTagKeys().size()).isEqualTo(1);
-        assertThat(removeTagsRequest.getTagKeys().get(0)).isEqualTo(sharedKey);
+        assertThat(removeTagsRequest.tagKeys().size()).isEqualTo(1);
+        assertThat(removeTagsRequest.tagKeys().get(0)).isEqualTo(sharedKey);
     }
 
     @Test
     public void testChangedTagValue_Register() {
-        DBProxyEndpoint dbProxyEndpoint = new DBProxyEndpoint().withStatus(AVAILABLE_ENDPOINT_STATE);
+        DBProxyEndpoint dbProxyEndpoint = DBProxyEndpoint.builder().status(AVAILABLE_ENDPOINT_STATE).build();
         final CallbackContext context = CallbackContext.builder()
                 .stabilizationRetriesRemaining(1)
                 .tagsDeregistered(true)
@@ -472,12 +474,12 @@ public class UpdateHandlerTest {
         assertThat(response.getErrorCode()).isNull();
 
         ArgumentCaptor<AddTagsToResourceRequest> captor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
-        verify(proxy).injectCredentialsAndInvoke(captor.capture(),
-                ArgumentMatchers.<Function<AddTagsToResourceRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        verify(proxy).injectCredentialsAndInvokeV2(captor.capture(),
+                ArgumentMatchers.<Function<AddTagsToResourceRequest, AddTagsToResourceResponse>>any());
         AddTagsToResourceRequest addTagRequest = captor.getValue();
-        assertThat(addTagRequest.getTags().size()).isEqualTo(1);
-        Tag addedTag = addTagRequest.getTags().get(0);
-        assertThat(addedTag.getKey()).isEqualTo(sharedKey);
-        assertThat(addedTag.getValue()).isEqualTo(newValue);
+        assertThat(addTagRequest.tags().size()).isEqualTo(1);
+        Tag addedTag = addTagRequest.tags().get(0);
+        assertThat(addedTag.key()).isEqualTo(sharedKey);
+        assertThat(addedTag.value()).isEqualTo(newValue);
     }
 }

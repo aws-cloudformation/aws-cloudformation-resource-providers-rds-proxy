@@ -6,18 +6,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import com.amazonaws.services.rds.AmazonRDS;
-import com.amazonaws.services.rds.AmazonRDSClientBuilder;
-import com.amazonaws.services.rds.model.ConnectionPoolConfiguration;
-import com.amazonaws.services.rds.model.DBProxyTarget;
-import com.amazonaws.services.rds.model.DBProxyTargetGroup;
-import com.amazonaws.services.rds.model.DBProxyTargetGroupNotFoundException;
-import com.amazonaws.services.rds.model.DeregisterDBProxyTargetsRequest;
-import com.amazonaws.services.rds.model.DescribeDBProxyTargetGroupsRequest;
-import com.amazonaws.services.rds.model.DescribeDBProxyTargetsRequest;
-import com.amazonaws.services.rds.model.DescribeDBProxyTargetsResult;
-import com.amazonaws.services.rds.model.ModifyDBProxyTargetGroupRequest;
-import com.amazonaws.services.rds.model.RegisterDBProxyTargetsRequest;
+import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.ConnectionPoolConfiguration;
+import software.amazon.awssdk.services.rds.model.DBProxyTarget;
+import software.amazon.awssdk.services.rds.model.DBProxyTargetGroup;
+import software.amazon.awssdk.services.rds.model.DbProxyTargetGroupNotFoundException;
+import software.amazon.awssdk.services.rds.model.DeregisterDbProxyTargetsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyTargetGroupsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyTargetsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyTargetsResponse;
+import software.amazon.awssdk.services.rds.model.ModifyDbProxyTargetGroupRequest;
+import software.amazon.awssdk.services.rds.model.RegisterDbProxyTargetsRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -27,7 +26,7 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 
 public class UpdateHandler extends BaseHandler<CallbackContext> {
     private AmazonWebServicesClientProxy clientProxy;
-    private AmazonRDS rdsClient;
+    private RdsClient rdsClient;
 
     private static final String TIMED_OUT_MESSAGE = "Timed out waiting for ProxyTargetGroup to finish modification.";
 
@@ -42,7 +41,7 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
         final ResourceModel oldModel = request.getPreviousResourceState();
 
         clientProxy = proxy;
-        rdsClient = AmazonRDSClientBuilder.defaultClient();
+        rdsClient = RdsClient.create();
 
         final CallbackContext currentContext = Optional.ofNullable(callbackContext)
                                                        .orElse(CallbackContext.builder()
@@ -72,7 +71,7 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
                                 .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
                                 .build())
                         .build();
-            } catch (DBProxyTargetGroupNotFoundException e) {
+            } catch (DbProxyTargetGroupNotFoundException e) {
                 return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.NotFound);
             }
         }
@@ -133,31 +132,34 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
 
     private DBProxyTargetGroup modifyProxyTargetGroup(ResourceModel oldModel, ResourceModel newModel) {
         if (oldModel.equals(newModel)) {
-            return new DBProxyTargetGroup();
+            return DBProxyTargetGroup.builder().build();
         }
 
         ConnectionPoolConfigurationInfoFormat modelConnectionPoolConfig = newModel.getConnectionPoolConfigurationInfo();
         if (modelConnectionPoolConfig == null) {
-            DescribeDBProxyTargetGroupsRequest describeRequest = new DescribeDBProxyTargetGroupsRequest()
-                                                                         .withDBProxyName(newModel.getDBProxyName())
-                                                                         .withTargetGroupName(newModel.getTargetGroupName());
-            return clientProxy.injectCredentialsAndInvoke(describeRequest, rdsClient::describeDBProxyTargetGroups).getTargetGroups().get(0);
+            DescribeDbProxyTargetGroupsRequest describeRequest = DescribeDbProxyTargetGroupsRequest.builder()
+                                                                         .dbProxyName(newModel.getDBProxyName())
+                                                                         .targetGroupName(newModel.getTargetGroupName())
+                                                                         .build();
+            return clientProxy.injectCredentialsAndInvokeV2(describeRequest, rdsClient::describeDBProxyTargetGroups).targetGroups().get(0);
         }
 
         ConnectionPoolConfiguration connectionPoolConfiguration =
-                new ConnectionPoolConfiguration()
-                        .withMaxConnectionsPercent(modelConnectionPoolConfig.getMaxConnectionsPercent())
-                        .withMaxIdleConnectionsPercent(modelConnectionPoolConfig.getMaxIdleConnectionsPercent())
-                        .withConnectionBorrowTimeout(modelConnectionPoolConfig.getConnectionBorrowTimeout())
-                        .withSessionPinningFilters(modelConnectionPoolConfig.getSessionPinningFilters())
-                        .withInitQuery(modelConnectionPoolConfig.getInitQuery());
+                ConnectionPoolConfiguration.builder()
+                        .maxConnectionsPercent(modelConnectionPoolConfig.getMaxConnectionsPercent())
+                        .maxIdleConnectionsPercent(modelConnectionPoolConfig.getMaxIdleConnectionsPercent())
+                        .connectionBorrowTimeout(modelConnectionPoolConfig.getConnectionBorrowTimeout())
+                        .sessionPinningFilters(modelConnectionPoolConfig.getSessionPinningFilters())
+                        .initQuery(modelConnectionPoolConfig.getInitQuery())
+                        .build();
 
-        ModifyDBProxyTargetGroupRequest request = new ModifyDBProxyTargetGroupRequest()
-                                                          .withDBProxyName(newModel.getDBProxyName())
-                                                          .withTargetGroupName(newModel.getTargetGroupName())
-                                                          .withConnectionPoolConfig(connectionPoolConfiguration);
+        ModifyDbProxyTargetGroupRequest request = ModifyDbProxyTargetGroupRequest.builder()
+                                                          .dbProxyName(newModel.getDBProxyName())
+                                                          .targetGroupName(newModel.getTargetGroupName())
+                                                          .connectionPoolConfig(connectionPoolConfiguration)
+                                                          .build();
 
-        return clientProxy.injectCredentialsAndInvoke(request, rdsClient::modifyDBProxyTargetGroup).getDBProxyTargetGroup();
+        return clientProxy.injectCredentialsAndInvokeV2(request, rdsClient::modifyDBProxyTargetGroup).dbProxyTargetGroup();
     }
 
     private List<DBProxyTarget> registerNewTargets(ResourceModel oldModel, ResourceModel newModel) {
@@ -173,12 +175,13 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
             return new ArrayList<>();
         }
 
-        RegisterDBProxyTargetsRequest registerRequest = new RegisterDBProxyTargetsRequest()
-                                                                .withDBProxyName(newModel.getDBProxyName())
-                                                                .withTargetGroupName(newModel.getTargetGroupName())
-                                                                .withDBClusterIdentifiers(clustersToAdd)
-                                                                .withDBInstanceIdentifiers(instancesToAdd);
-        return clientProxy.injectCredentialsAndInvoke(registerRequest, rdsClient::registerDBProxyTargets).getDBProxyTargets();
+        RegisterDbProxyTargetsRequest registerRequest = RegisterDbProxyTargetsRequest.builder()
+                                                                .dbProxyName(newModel.getDBProxyName())
+                                                                .targetGroupName(newModel.getTargetGroupName())
+                                                                .dbClusterIdentifiers(clustersToAdd)
+                                                                .dbInstanceIdentifiers(instancesToAdd)
+                                                                .build();
+        return clientProxy.injectCredentialsAndInvokeV2(registerRequest, rdsClient::registerDBProxyTargets).dbProxyTargets();
     }
 
     private boolean deregisterOldTargets(ResourceModel oldModel, ResourceModel newModel) {
@@ -194,17 +197,18 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
             return true;
         }
 
-        DeregisterDBProxyTargetsRequest deregisterRequest = new DeregisterDBProxyTargetsRequest()
-                                                                    .withDBProxyName(newModel.getDBProxyName())
-                                                                    .withTargetGroupName(newModel.getTargetGroupName())
-                                                                    .withDBClusterIdentifiers(clustersToRemove)
-                                                                    .withDBInstanceIdentifiers(instancesToRemove);
-        clientProxy.injectCredentialsAndInvoke(deregisterRequest, rdsClient::deregisterDBProxyTargets);
+        DeregisterDbProxyTargetsRequest deregisterRequest = DeregisterDbProxyTargetsRequest.builder()
+                                                                    .dbProxyName(newModel.getDBProxyName())
+                                                                    .targetGroupName(newModel.getTargetGroupName())
+                                                                    .dbClusterIdentifiers(clustersToRemove)
+                                                                    .dbInstanceIdentifiers(instancesToRemove)
+                                                                    .build();
+        clientProxy.injectCredentialsAndInvokeV2(deregisterRequest, rdsClient::deregisterDBProxyTargets);
         return true;
     }
 
     private List<String> listNewObjects(List<String> list1, List<String> list2) {
-        if (list1.size() > 0 && list2.size() > 0) {
+        if (!list1.isEmpty() && !list2.isEmpty()) {
             list1.removeAll(list2);
         }
         return list1;
@@ -214,11 +218,12 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
         String proxyName = model.getDBProxyName();
         String targetGroupName = Optional.ofNullable(model.getTargetGroupName()).orElse("default");
 
-        DescribeDBProxyTargetsRequest describeDBProxyTargetsRequest = new DescribeDBProxyTargetsRequest()
-                                                                              .withDBProxyName(proxyName)
-                                                                              .withTargetGroupName(targetGroupName);
+        DescribeDbProxyTargetsRequest describeDBProxyTargetsRequest = DescribeDbProxyTargetsRequest.builder()
+                                                                              .dbProxyName(proxyName)
+                                                                              .targetGroupName(targetGroupName)
+                                                                              .build();
 
-        DescribeDBProxyTargetsResult describeResult = clientProxy.injectCredentialsAndInvoke(describeDBProxyTargetsRequest, rdsClient::describeDBProxyTargets);
-        return validateHealth(describeResult);
+        DescribeDbProxyTargetsResponse targetsResponse = clientProxy.injectCredentialsAndInvokeV2(describeDBProxyTargetsRequest, rdsClient::describeDBProxyTargets);
+        return validateHealth(targetsResponse);
     }
 }

@@ -16,24 +16,22 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.amazonaws.AmazonWebServiceResult;
-import com.amazonaws.ResponseMetadata;
-import com.amazonaws.services.rds.model.ConnectionPoolConfigurationInfo;
-import com.amazonaws.services.rds.model.DBProxy;
-import com.amazonaws.services.rds.model.DBProxyTarget;
-import com.amazonaws.services.rds.model.DBProxyTargetGroup;
-import com.amazonaws.services.rds.model.DeregisterDBProxyTargetsRequest;
-import com.amazonaws.services.rds.model.DeregisterDBProxyTargetsResult;
-import com.amazonaws.services.rds.model.DescribeDBProxyTargetGroupsRequest;
-import com.amazonaws.services.rds.model.DescribeDBProxyTargetGroupsResult;
-import com.amazonaws.services.rds.model.DescribeDBProxyTargetsRequest;
-import com.amazonaws.services.rds.model.DescribeDBProxyTargetsResult;
-import com.amazonaws.services.rds.model.ModifyDBProxyTargetGroupRequest;
-import com.amazonaws.services.rds.model.ModifyDBProxyTargetGroupResult;
-import com.amazonaws.services.rds.model.RegisterDBProxyTargetsRequest;
-import com.amazonaws.services.rds.model.RegisterDBProxyTargetsResult;
-import com.amazonaws.services.rds.model.TargetHealth;
 import com.google.common.collect.ImmutableList;
+import software.amazon.awssdk.services.rds.model.ConnectionPoolConfigurationInfo;
+import software.amazon.awssdk.services.rds.model.DBProxy;
+import software.amazon.awssdk.services.rds.model.DBProxyTarget;
+import software.amazon.awssdk.services.rds.model.DBProxyTargetGroup;
+import software.amazon.awssdk.services.rds.model.DeregisterDbProxyTargetsRequest;
+import software.amazon.awssdk.services.rds.model.DeregisterDbProxyTargetsResponse;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyTargetGroupsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyTargetGroupsResponse;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyTargetsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyTargetsResponse;
+import software.amazon.awssdk.services.rds.model.ModifyDbProxyTargetGroupRequest;
+import software.amazon.awssdk.services.rds.model.ModifyDbProxyTargetGroupResponse;
+import software.amazon.awssdk.services.rds.model.RegisterDbProxyTargetsRequest;
+import software.amazon.awssdk.services.rds.model.RegisterDbProxyTargetsResponse;
+import software.amazon.awssdk.services.rds.model.TargetHealth;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.OperationStatus;
@@ -57,7 +55,7 @@ public class UpdateHandlerTest {
 
     @Test
     public void handleRequest_SimpleSuccess() {
-        DBProxyTargetGroup defaultTargetGroup = new DBProxyTargetGroup();
+        DBProxyTargetGroup defaultTargetGroup = DBProxyTargetGroup.builder().build();
         List<DBProxyTarget> targetList = new ArrayList<>();
         final CallbackContext context = CallbackContext.builder()
                                                        .targetGroupStatus(defaultTargetGroup)
@@ -98,18 +96,19 @@ public class UpdateHandlerTest {
         String initQuery = "initQuery";
         String sessionPinningFilters = "sessionPinningFilters";
 
-        DBProxy dbProxy = new DBProxy().withStatus("available");
-        com.amazonaws.services.rds.model.ConnectionPoolConfigurationInfo connectionPoolConfigurationInfo = new ConnectionPoolConfigurationInfo()
-                                                                                                                   .withConnectionBorrowTimeout(connectionBorrowTimeout)
-                                                                                                                   .withMaxConnectionsPercent(maxConnectionsPercent)
-                                                                                                                   .withMaxIdleConnectionsPercent(newMaxIdleConnectionsPercent)
-                                                                                                                   .withInitQuery(initQuery)
-                                                                                                                   .withSessionPinningFilters(sessionPinningFilters);
+        DBProxy dbProxy = DBProxy.builder().status("available").build();
+        ConnectionPoolConfigurationInfo connectionPoolConfigurationInfo = ConnectionPoolConfigurationInfo.builder()
+                                                                                                                   .connectionBorrowTimeout(connectionBorrowTimeout)
+                                                                                                                   .maxConnectionsPercent(maxConnectionsPercent)
+                                                                                                                   .maxIdleConnectionsPercent(newMaxIdleConnectionsPercent)
+                                                                                                                   .initQuery(initQuery)
+                                                                                                                   .sessionPinningFilters(sessionPinningFilters)
+                .build();
 
-        DBProxyTargetGroup dbProxyTargetGroup = new DBProxyTargetGroup().withConnectionPoolConfig(connectionPoolConfigurationInfo);
-        doReturn(new ModifyDBProxyTargetGroupResult().withDBProxyTargetGroup(dbProxyTargetGroup)).when(proxy)
-                .injectCredentialsAndInvoke(any(ModifyDBProxyTargetGroupRequest.class),
-                        ArgumentMatchers.<Function<ModifyDBProxyTargetGroupRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        DBProxyTargetGroup dbProxyTargetGroup = DBProxyTargetGroup.builder().connectionPoolConfig(connectionPoolConfigurationInfo).build();
+        doReturn(ModifyDbProxyTargetGroupResponse.builder().dbProxyTargetGroup(dbProxyTargetGroup).build()).when(proxy)
+                .injectCredentialsAndInvokeV2(any(ModifyDbProxyTargetGroupRequest.class),
+                        ArgumentMatchers.<Function<ModifyDbProxyTargetGroupRequest, ModifyDbProxyTargetGroupResponse>>any());
 
 
         final CallbackContext context = CallbackContext.builder()
@@ -167,12 +166,12 @@ public class UpdateHandlerTest {
 
     @Test
     public void testModifyNoConnectionPoolConfig() {
-        DBProxy dbProxy = new DBProxy().withStatus("available");
+        DBProxy dbProxy = DBProxy.builder().status("available").build();
         ImmutableList<String> clusterId = ImmutableList.of("clusterId");
-        DBProxyTargetGroup dbProxyTargetGroup = new DBProxyTargetGroup();
-        doReturn(new DescribeDBProxyTargetGroupsResult().withTargetGroups(dbProxyTargetGroup)).when(proxy)
-                .injectCredentialsAndInvoke(any(DescribeDBProxyTargetGroupsRequest.class),
-                        ArgumentMatchers.<Function<DescribeDBProxyTargetGroupsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        DBProxyTargetGroup dbProxyTargetGroup = DBProxyTargetGroup.builder().build();
+        doReturn(DescribeDbProxyTargetGroupsResponse.builder().targetGroups(dbProxyTargetGroup).build()).when(proxy)
+                .injectCredentialsAndInvokeV2(any(DescribeDbProxyTargetGroupsRequest.class),
+                        ArgumentMatchers.<Function<DescribeDbProxyTargetGroupsRequest, DescribeDbProxyTargetGroupsResponse>>any());
         final CreateHandler handler = new CreateHandler();
 
         final ResourceModel model = ResourceModel.builder().dBClusterIdentifiers(clusterId).build();
@@ -212,7 +211,7 @@ public class UpdateHandlerTest {
         String initQuery = "initQuery";
         String sessionPinningFilters = "sessionPinningFilters";
 
-        DBProxy dbProxy = new DBProxy().withStatus("available");
+        DBProxy dbProxy = DBProxy.builder().status("available").build();
 
         final CallbackContext context = CallbackContext.builder()
                                                        .stabilizationRetriesRemaining(1)
@@ -241,7 +240,7 @@ public class UpdateHandlerTest {
 
         final CallbackContext desiredOutputContext = CallbackContext.builder()
                                                                     .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
-                                                                    .targetGroupStatus(new DBProxyTargetGroup())
+                                                                    .targetGroupStatus(DBProxyTargetGroup.builder().build())
                                                                     .build();
 
         final ProgressEvent<ResourceModel, CallbackContext> response
@@ -258,12 +257,12 @@ public class UpdateHandlerTest {
 
     @Test
     public void testRegister() {
-        DBProxy dbProxy = new DBProxy().withStatus("available");
-        DBProxyTargetGroup dbProxyTargetGroup = new DBProxyTargetGroup();
-        DBProxyTarget dbProxyTarget = new DBProxyTarget();
-        doReturn(new RegisterDBProxyTargetsResult().withDBProxyTargets(dbProxyTarget)).when(proxy)
-                .injectCredentialsAndInvoke(any(RegisterDBProxyTargetsRequest.class),
-                        ArgumentMatchers.<Function<RegisterDBProxyTargetsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        DBProxy dbProxy = DBProxy.builder().status("available").build();
+        DBProxyTargetGroup dbProxyTargetGroup = DBProxyTargetGroup.builder().build();
+        DBProxyTarget dbProxyTarget = DBProxyTarget.builder().build();
+        doReturn(RegisterDbProxyTargetsResponse.builder().dbProxyTargets(dbProxyTarget).build()).when(proxy)
+                .injectCredentialsAndInvokeV2(any(RegisterDbProxyTargetsRequest.class),
+                        ArgumentMatchers.<Function<RegisterDbProxyTargetsRequest, RegisterDbProxyTargetsResponse>>any());
         final UpdateHandler handler = new UpdateHandler();
 
         ImmutableList<String> clusterId = ImmutableList.of("clusterId");
@@ -304,9 +303,9 @@ public class UpdateHandlerTest {
 
     @Test
     public void testDeregister() {
-        DBProxyTargetGroup dbProxyTargetGroup = new DBProxyTargetGroup();
-        doReturn(new DeregisterDBProxyTargetsResult()).when(proxy).injectCredentialsAndInvoke(any(DeregisterDBProxyTargetsRequest.class),
-                ArgumentMatchers.<Function<DeregisterDBProxyTargetsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        DBProxyTargetGroup dbProxyTargetGroup = DBProxyTargetGroup.builder().build();
+        doReturn(DeregisterDbProxyTargetsResponse.builder().build()).when(proxy).injectCredentialsAndInvokeV2(any(DeregisterDbProxyTargetsRequest.class),
+                ArgumentMatchers.<Function<DeregisterDbProxyTargetsRequest, DeregisterDbProxyTargetsResponse>>any());
         final UpdateHandler handler = new UpdateHandler();
 
         ImmutableList<String> instanceId = ImmutableList.of("instanceId");
@@ -343,17 +342,18 @@ public class UpdateHandlerTest {
 
     @Test
     public void testTargetHealth() {
-        DBProxyTargetGroup defaultTargetGroup = new DBProxyTargetGroup();
-        DBProxyTarget dbProxyTarget = new DBProxyTarget().withRdsResourceId("resourceId");
+        DBProxyTargetGroup defaultTargetGroup = DBProxyTargetGroup.builder().build();
+        DBProxyTarget dbProxyTarget = DBProxyTarget.builder().rdsResourceId("resourceId").build();
         List<DBProxyTarget> targetList = ImmutableList.of(dbProxyTarget);
 
-        DBProxyTarget target = new DBProxyTarget()
-                                       .withRdsResourceId("resourceId")
-                                       .withType("RDS_INSTANCE")
-                                       .withTargetHealth(new TargetHealth().withState(Constants.AVAILABLE_STATE));
+        DBProxyTarget target = DBProxyTarget.builder()
+                                       .rdsResourceId("resourceId")
+                                       .type("RDS_INSTANCE")
+                                       .targetHealth(TargetHealth.builder().state(Constants.AVAILABLE_STATE).build())
+                .build();
 
-        doReturn(new DescribeDBProxyTargetsResult().withTargets(target)).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetsRequest.class),
-                ArgumentMatchers.<Function<DescribeDBProxyTargetsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        doReturn(DescribeDbProxyTargetsResponse.builder().targets(target).build()).when(proxy).injectCredentialsAndInvokeV2(any(DescribeDbProxyTargetsRequest.class),
+                ArgumentMatchers.<Function<DescribeDbProxyTargetsRequest, DescribeDbProxyTargetsResponse>>any());
         final CallbackContext context = CallbackContext.builder()
                                                        .targetGroupStatus(defaultTargetGroup)
                                                        .targets(targetList)

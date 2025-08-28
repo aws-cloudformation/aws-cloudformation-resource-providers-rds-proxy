@@ -1,12 +1,11 @@
 package software.amazon.rds.dbproxyendpoint;
 
-import com.amazonaws.services.rds.AmazonRDS;
-import com.amazonaws.services.rds.AmazonRDSClientBuilder;
-import com.amazonaws.services.rds.model.DBProxyEndpoint;
-import com.amazonaws.services.rds.model.DBProxyEndpointNotFoundException;
-import com.amazonaws.services.rds.model.DeleteDBProxyEndpointRequest;
-import com.amazonaws.services.rds.model.DeleteDBProxyEndpointResult;
-import com.amazonaws.services.rds.model.DescribeDBProxyEndpointsRequest;
+import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DBProxyEndpoint;
+import software.amazon.awssdk.services.rds.model.DbProxyEndpointNotFoundException;
+import software.amazon.awssdk.services.rds.model.DeleteDbProxyEndpointRequest;
+import software.amazon.awssdk.services.rds.model.DeleteDbProxyEndpointResponse;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyEndpointsRequest;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -18,7 +17,7 @@ public class DeleteHandler extends BaseHandler<CallbackContext> {
     private static final String TIMED_OUT_MESSAGE = "Timed out waiting for proxyEndpoint to terminate.";
 
     private AmazonWebServicesClientProxy clientProxy;
-    private AmazonRDS rdsClient;
+    private RdsClient rdsClient;
 
     @Override
     public ProgressEvent<ResourceModel, CallbackContext> handleRequest(
@@ -30,7 +29,7 @@ public class DeleteHandler extends BaseHandler<CallbackContext> {
         final ResourceModel model = request.getDesiredResourceState();
 
         clientProxy = proxy;
-        rdsClient = AmazonRDSClientBuilder.defaultClient();
+        rdsClient = RdsClient.create();
 
         final CallbackContext currentContext = callbackContext == null ?
                 CallbackContext.builder().stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES).build() :
@@ -56,7 +55,7 @@ public class DeleteHandler extends BaseHandler<CallbackContext> {
                                 .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
                                 .build())
                         .build();
-            } catch (DBProxyEndpointNotFoundException e) {
+            } catch (DbProxyEndpointNotFoundException e) {
                 return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.NotFound);
             }
         } else if (callbackContext.isDeleted()) {
@@ -82,20 +81,19 @@ public class DeleteHandler extends BaseHandler<CallbackContext> {
     }
 
     private DBProxyEndpoint deleteProxyEndpoint(String proxyEndpointName) {
-        DeleteDBProxyEndpointRequest request = new DeleteDBProxyEndpointRequest().withDBProxyEndpointName(proxyEndpointName);
+        DeleteDbProxyEndpointRequest request = DeleteDbProxyEndpointRequest.builder().dbProxyEndpointName(proxyEndpointName).build();
 
-        DeleteDBProxyEndpointResult result = clientProxy.injectCredentialsAndInvoke(request, rdsClient::deleteDBProxyEndpoint);
-        return result.getDBProxyEndpoint();
+        DeleteDbProxyEndpointResponse response = clientProxy.injectCredentialsAndInvokeV2(request, rdsClient::deleteDBProxyEndpoint);
+        return response.dbProxyEndpoint();
     }
 
     private boolean doesProxyEndpointExist(String proxyEndpointName) {
-        DescribeDBProxyEndpointsRequest describeDBProxyEndpointsRequest;
 
-        describeDBProxyEndpointsRequest = new DescribeDBProxyEndpointsRequest().withDBProxyEndpointName(proxyEndpointName);
+        DescribeDbProxyEndpointsRequest describeDBProxyEndpointsRequest = DescribeDbProxyEndpointsRequest.builder().dbProxyEndpointName(proxyEndpointName).build();
         try {
-            clientProxy.injectCredentialsAndInvoke(describeDBProxyEndpointsRequest, rdsClient::describeDBProxyEndpoints);
+            clientProxy.injectCredentialsAndInvokeV2(describeDBProxyEndpointsRequest, rdsClient::describeDBProxyEndpoints);
             return true;
-        } catch (DBProxyEndpointNotFoundException e) {
+        } catch (DbProxyEndpointNotFoundException e) {
             return false;
         }
     }

@@ -3,10 +3,9 @@ package software.amazon.rds.dbproxyendpoint;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.amazonaws.services.rds.AmazonRDS;
-import com.amazonaws.services.rds.AmazonRDSClientBuilder;
-import com.amazonaws.services.rds.model.DescribeDBProxyEndpointsRequest;
-import com.amazonaws.services.rds.model.DescribeDBProxyEndpointsResult;
+import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyEndpointsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyEndpointsResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.OperationStatus;
@@ -18,7 +17,7 @@ public class ListHandler extends BaseHandler<CallbackContext> {
     private static final int MAX_RESULTS = 100;
 
     private AmazonWebServicesClientProxy clientProxy;
-    private AmazonRDS rdsClient;
+    private RdsClient rdsClient;
 
     @Override
     public ProgressEvent<ResourceModel, CallbackContext> handleRequest(
@@ -28,7 +27,7 @@ public class ListHandler extends BaseHandler<CallbackContext> {
             final Logger logger) {
 
         clientProxy = proxy;
-        rdsClient = AmazonRDSClientBuilder.defaultClient();
+        rdsClient = RdsClient.create();
 
         final List<ResourceModel> models = listProxyEndpoints(request.getNextToken());
 
@@ -39,10 +38,10 @@ public class ListHandler extends BaseHandler<CallbackContext> {
     }
 
     private List<ResourceModel> listProxyEndpoints(String nextToken) {
-        DescribeDBProxyEndpointsRequest request = new DescribeDBProxyEndpointsRequest().withMaxRecords(MAX_RESULTS).withMarker(nextToken);
+        DescribeDbProxyEndpointsRequest request = DescribeDbProxyEndpointsRequest.builder().maxRecords(MAX_RESULTS).marker(nextToken).build();
 
-        DescribeDBProxyEndpointsResult result = clientProxy.injectCredentialsAndInvoke(request, rdsClient::describeDBProxyEndpoints);
+        DescribeDbProxyEndpointsResponse response = clientProxy.injectCredentialsAndInvokeV2(request, rdsClient::describeDBProxyEndpoints);
 
-        return result.getDBProxyEndpoints().stream().map(Utility::resultToModel).collect(Collectors.toList());
+        return response.dbProxyEndpoints().stream().map(Utility::resultToModel).collect(Collectors.toList());
     }
 }

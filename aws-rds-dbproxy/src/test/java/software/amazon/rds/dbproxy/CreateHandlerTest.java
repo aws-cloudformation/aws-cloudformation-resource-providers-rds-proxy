@@ -14,13 +14,11 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.amazonaws.AmazonWebServiceResult;
-import com.amazonaws.ResponseMetadata;
-import com.amazonaws.services.rds.model.CreateDBProxyRequest;
-import com.amazonaws.services.rds.model.CreateDBProxyResult;
-import com.amazonaws.services.rds.model.DBProxy;
-import com.amazonaws.services.rds.model.DescribeDBProxiesRequest;
-import com.amazonaws.services.rds.model.DescribeDBProxiesResult;
+import software.amazon.awssdk.services.rds.model.CreateDbProxyRequest;
+import software.amazon.awssdk.services.rds.model.CreateDbProxyResponse;
+import software.amazon.awssdk.services.rds.model.DBProxy;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxiesRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxiesResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -45,9 +43,9 @@ public class CreateHandlerTest {
 
     @Test
     public void handleRequest_InitialRunCreateProxy() {
-        DBProxy dbProxy = new DBProxy().withStatus("creating");
-        doReturn(new CreateDBProxyResult().withDBProxy(dbProxy)).when(proxy).injectCredentialsAndInvoke(any(CreateDBProxyRequest.class),
-                ArgumentMatchers.<Function<CreateDBProxyRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        DBProxy dbProxy = DBProxy.builder().status("creating").build();
+        doReturn(CreateDbProxyResponse.builder().dbProxy(dbProxy).build()).when(proxy).injectCredentialsAndInvokeV2(any(CreateDbProxyRequest.class),
+                ArgumentMatchers.<Function<CreateDbProxyRequest, CreateDbProxyResponse>>any());
 
         final CreateHandler handler = new CreateHandler();
 
@@ -80,9 +78,9 @@ public class CreateHandlerTest {
 
     @Test
     public void handleRequest_Creating() {
-        DBProxy dbProxy = new DBProxy().withStatus("creating");
-        doReturn(new DescribeDBProxiesResult().withDBProxies(dbProxy)).when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class),
-                ArgumentMatchers.<Function<DescribeDBProxiesRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        DBProxy dbProxy = DBProxy.builder().status("creating").build();
+        doReturn(DescribeDbProxiesResponse.builder().dbProxies(dbProxy).build()).when(proxy).injectCredentialsAndInvokeV2(any(DescribeDbProxiesRequest.class),
+                ArgumentMatchers.<Function<DescribeDbProxiesRequest, DescribeDbProxiesResponse>>any());
 
         final CreateHandler handler = new CreateHandler();
 
@@ -111,7 +109,7 @@ public class CreateHandlerTest {
 
     @Test
     public void handleRequest_Available() {
-        DBProxy dbProxy = new DBProxy().withStatus("available");
+        DBProxy dbProxy = DBProxy.builder().status("available").build();
 
         final CreateHandler handler = new CreateHandler();
 
@@ -151,7 +149,7 @@ public class CreateHandlerTest {
 
         final CallbackContext context = CallbackContext.builder()
                                                        .stabilizationRetriesRemaining(60)
-                                                       .proxy(new DBProxy().withStatus("incompatible-network"))
+                                                       .proxy(DBProxy.builder().status("incompatible-network").build())
                                                        .build();
 
         final ProgressEvent<ResourceModel, CallbackContext> response
@@ -179,7 +177,7 @@ public class CreateHandlerTest {
 
         final CallbackContext context = CallbackContext.builder()
                                                        .stabilizationRetriesRemaining(0)
-                                                       .proxy(new DBProxy().withStatus("creating"))
+                                                       .proxy(DBProxy.builder().status("creating").build())
                                                        .build();
 
         try {

@@ -9,17 +9,16 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 
-import com.amazonaws.services.rds.AmazonRDS;
-import com.amazonaws.services.rds.AmazonRDSClientBuilder;
-import com.amazonaws.services.rds.model.AddTagsToResourceRequest;
-import com.amazonaws.services.rds.model.DBProxyEndpoint;
-import com.amazonaws.services.rds.model.DBProxyEndpointNotFoundException;
-import com.amazonaws.services.rds.model.DescribeDBProxyEndpointsRequest;
-import com.amazonaws.services.rds.model.DescribeDBProxyEndpointsResult;
-import com.amazonaws.services.rds.model.ModifyDBProxyEndpointRequest;
-import com.amazonaws.services.rds.model.ModifyDBProxyEndpointResult;
-import com.amazonaws.services.rds.model.RemoveTagsFromResourceRequest;
-import com.amazonaws.services.rds.model.Tag;
+import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
+import software.amazon.awssdk.services.rds.model.DBProxyEndpoint;
+import software.amazon.awssdk.services.rds.model.DbProxyEndpointNotFoundException;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyEndpointsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyEndpointsResponse;
+import software.amazon.awssdk.services.rds.model.ModifyDbProxyEndpointRequest;
+import software.amazon.awssdk.services.rds.model.ModifyDbProxyEndpointResponse;
+import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
+import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
@@ -35,7 +34,7 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
     public static final String TARGET_ROLE_CREATE_ONLY_MESSAGE = "TargetRole is a create-only property and cannot be updated.";
 
     private AmazonWebServicesClientProxy clientProxy;
-    private AmazonRDS rdsClient;
+    private RdsClient rdsClient;
     private Logger log;
 
     private static final String TIMED_OUT_MESSAGE = "Timed out waiting for proxyEndpoint to finish modification.";
@@ -50,7 +49,7 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
         final ResourceModel oldModel = request.getPreviousResourceState();
 
         clientProxy = proxy;
-        rdsClient = AmazonRDSClientBuilder.defaultClient();
+        rdsClient = RdsClient.create();
         log = logger;
 
         final CallbackContext currentContext = callbackContext == null ?
@@ -83,7 +82,7 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
                                 .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
                                 .build())
                         .build());
-            } catch (DBProxyEndpointNotFoundException e) {
+            } catch (DbProxyEndpointNotFoundException e) {
                 return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.NotFound);
             }
         }
@@ -114,12 +113,12 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
                     .build();
         }
 
-        if (proxyEndpointStateSoFar.getStatus().equals(Constants.AVAILABLE_ENDPOINT_STATE)) {
+        if (proxyEndpointStateSoFar.status().toString().equals(Constants.AVAILABLE_ENDPOINT_STATE)) {
             return ProgressEvent.<ResourceModel, CallbackContext>builder()
                     .resourceModel(newModel)
                     .status(OperationStatus.SUCCESS)
                     .build();
-        } else if (Constants.TERMINAL_FAILURE_STATES.contains(proxyEndpointStateSoFar.getStatus())) {
+        } else if (Constants.TERMINAL_FAILURE_STATES.contains(proxyEndpointStateSoFar.status().toString())) {
             return ProgressEvent.<ResourceModel, CallbackContext>builder()
                     .status(OperationStatus.FAILED)
                     .errorCode(HandlerErrorCode.NotFound)
@@ -131,7 +130,7 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
                 throw new RuntimeException(e);
             }
 
-            DBProxyEndpoint proxyEndpoint = updatedProxyEndpointProgress(proxyEndpointStateSoFar.getDBProxyEndpointName());
+            DBProxyEndpoint proxyEndpoint = updatedProxyEndpointProgress(proxyEndpointStateSoFar.dbProxyEndpointName());
             return ProgressEvent.<ResourceModel, CallbackContext>builder()
                     .resourceModel(newModel)
                     .status(OperationStatus.IN_PROGRESS)
@@ -150,14 +149,14 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
     }
 
     private List<TagFormat> listNewTags(List<TagFormat> list1, List<TagFormat> list2) {
-        if (list1.size() > 0 && list2.size() > 0) {
+        if (!list1.isEmpty() && !list2.isEmpty()) {
             list1.removeAll(list2);
         }
         return list1;
     }
 
     private List<Tag> toRDSTags(List<TagFormat> tagList) {
-        return tagList.stream().map(t -> new Tag().withKey(t.getKey()).withValue(t.getValue())).collect(Collectors.toList());
+        return tagList.stream().map(t -> Tag.builder().key(t.getKey()).value(t.getValue()).build()).collect(Collectors.toList());
     }
 
     private boolean deregisterOldTags(ResourceModel oldModel, ResourceModel newModel, DBProxyEndpoint proxyEndpoint) {
@@ -166,11 +165,12 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
         List<TagFormat> tagsToRemove = listNewTags(oldTags, newTags);
         List<String> tagKeyList = tagsToRemove.stream().map(t -> t.getKey()).collect(Collectors.toList());
 
-        if (tagKeyList.size() > 0) {
-            RemoveTagsFromResourceRequest removeTagsRequest = new RemoveTagsFromResourceRequest()
-                    .withResourceName(proxyEndpoint.getDBProxyEndpointArn())
-                    .withTagKeys(tagKeyList);
-            clientProxy.injectCredentialsAndInvoke(removeTagsRequest, rdsClient::removeTagsFromResource);
+        if (!tagKeyList.isEmpty()) {
+            RemoveTagsFromResourceRequest removeTagsRequest = RemoveTagsFromResourceRequest.builder()
+                    .resourceName(proxyEndpoint.dbProxyEndpointArn())
+                    .tagKeys(tagKeyList)
+                    .build();
+            clientProxy.injectCredentialsAndInvokeV2(removeTagsRequest, rdsClient::removeTagsFromResource);
         }
         return true;
     }
@@ -179,34 +179,35 @@ public class UpdateHandler extends BaseHandler<CallbackContext> {
         List<TagFormat> oldTags = getTagKeys(oldModel);
         List<TagFormat> newTags = getTagKeys(newModel);
         List<TagFormat> tagsToAdd = listNewTags(newTags, oldTags);
-        if (tagsToAdd.size() > 0 ) {
-            AddTagsToResourceRequest addTagsRequest = new AddTagsToResourceRequest()
-                    .withResourceName(proxyEndpoint.getDBProxyEndpointArn())
-                    .withTags(toRDSTags(tagsToAdd));
-            clientProxy.injectCredentialsAndInvoke(addTagsRequest, rdsClient::addTagsToResource);
+        if (!tagsToAdd.isEmpty()) {
+            AddTagsToResourceRequest addTagsRequest = AddTagsToResourceRequest.builder()
+                    .resourceName(proxyEndpoint.dbProxyEndpointArn())
+                    .tags(toRDSTags(tagsToAdd))
+                    .build();
+            clientProxy.injectCredentialsAndInvokeV2(addTagsRequest, rdsClient::addTagsToResource);
         }
         return true;
     }
 
     private DBProxyEndpoint updateProxyEndpointSettings(ResourceModel oldModel, ResourceModel newModel) {
-        ModifyDBProxyEndpointRequest request = new ModifyDBProxyEndpointRequest()
-                .withDBProxyEndpointName(oldModel.getDBProxyEndpointName())
-                .withVpcSecurityGroupIds(newModel.getVpcSecurityGroupIds());
+        ModifyDbProxyEndpointRequest request = ModifyDbProxyEndpointRequest.builder()
+                .dbProxyEndpointName(oldModel.getDBProxyEndpointName())
+                .vpcSecurityGroupIds(newModel.getVpcSecurityGroupIds())
+                .build();
 
-        ModifyDBProxyEndpointResult result = clientProxy.injectCredentialsAndInvoke(request, rdsClient::modifyDBProxyEndpoint);
-        return result.getDBProxyEndpoint();
+        ModifyDbProxyEndpointResponse response = clientProxy.injectCredentialsAndInvokeV2(request, rdsClient::modifyDBProxyEndpoint);
+        return response.dbProxyEndpoint();
     }
 
     private DBProxyEndpoint updatedProxyEndpointProgress(String proxyEndpointName) {
-        DescribeDBProxyEndpointsRequest describeDBProxyEndpointsRequest;
-        DescribeDBProxyEndpointsResult describeDBProxyEndpointsResult;
-
-        describeDBProxyEndpointsRequest = new DescribeDBProxyEndpointsRequest().withDBProxyEndpointName(proxyEndpointName);
-        describeDBProxyEndpointsResult = clientProxy.injectCredentialsAndInvoke(describeDBProxyEndpointsRequest, rdsClient::describeDBProxyEndpoints);
-        return describeDBProxyEndpointsResult.getDBProxyEndpoints()
+        DescribeDbProxyEndpointsRequest describeDBProxyEndpointsRequest = DescribeDbProxyEndpointsRequest.builder()
+                .dbProxyEndpointName(proxyEndpointName)
+                .build();
+        DescribeDbProxyEndpointsResponse describeDBProxyEndpointsResponse = clientProxy.injectCredentialsAndInvokeV2(describeDBProxyEndpointsRequest, rdsClient::describeDBProxyEndpoints);
+        return describeDBProxyEndpointsResponse.dbProxyEndpoints()
                 .stream()
                 .findFirst()
-                .orElse(new DBProxyEndpoint());
+                .orElse(DBProxyEndpoint.builder().build());
     }
 
     /**

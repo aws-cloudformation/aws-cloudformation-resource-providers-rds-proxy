@@ -16,13 +16,11 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.amazonaws.AmazonWebServiceResult;
-import com.amazonaws.ResponseMetadata;
-import com.amazonaws.services.rds.model.ConnectionPoolConfigurationInfo;
-import com.amazonaws.services.rds.model.DBProxyTargetGroup;
-import com.amazonaws.services.rds.model.DescribeDBProxyTargetGroupsRequest;
-import com.amazonaws.services.rds.model.DescribeDBProxyTargetGroupsResult;
 import com.google.common.collect.ImmutableList;
+import software.amazon.awssdk.services.rds.model.ConnectionPoolConfigurationInfo;
+import software.amazon.awssdk.services.rds.model.DBProxyTargetGroup;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyTargetGroupsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyTargetGroupsResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.OperationStatus;
@@ -50,20 +48,23 @@ public class ListHandlerTest {
 
         final ResourceModel model = ResourceModel.builder().build();
 
-        ConnectionPoolConfigurationInfo connectionPoolConfigurationInfo = new ConnectionPoolConfigurationInfo();
+        ConnectionPoolConfigurationInfo connectionPoolConfigurationInfo = ConnectionPoolConfigurationInfo.builder().build();
 
-        DBProxyTargetGroup dbProxyTargetGroup1 = new DBProxyTargetGroup().withConnectionPoolConfig(connectionPoolConfigurationInfo)
-                                                                         .withDBProxyName("proxy1")
-                                                                         .withTargetGroupName("default");
-        DBProxyTargetGroup dbProxyTargetGroup2 = new DBProxyTargetGroup().withConnectionPoolConfig(connectionPoolConfigurationInfo)
-                                                                         .withDBProxyName("proxy2")
-                                                                         .withTargetGroupName("default");
+        DBProxyTargetGroup dbProxyTargetGroup1 = DBProxyTargetGroup.builder()
+                                                                         .connectionPoolConfig(connectionPoolConfigurationInfo)
+                                                                         .dbProxyName("proxy1")
+                                                                         .targetGroupName("default")
+                                                                         .build();
+        DBProxyTargetGroup dbProxyTargetGroup2 = DBProxyTargetGroup.builder()
+                                                                         .connectionPoolConfig(connectionPoolConfigurationInfo)
+                                                                         .dbProxyName("proxy2")
+                                                                         .targetGroupName("default")
+                                                                         .build();
         final List<DBProxyTargetGroup> existingProxies = ImmutableList.of(dbProxyTargetGroup1, dbProxyTargetGroup2);
 
-        doReturn(new DescribeDBProxyTargetGroupsResult().withTargetGroups(existingProxies))
-                .when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetGroupsRequest.class),
-                ArgumentMatchers.<Function<DescribeDBProxyTargetGroupsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
-
+        doReturn(DescribeDbProxyTargetGroupsResponse.builder().targetGroups(existingProxies).build())
+                .when(proxy) .injectCredentialsAndInvokeV2(any(DescribeDbProxyTargetGroupsRequest.class),
+                        ArgumentMatchers.<Function<DescribeDbProxyTargetGroupsRequest, DescribeDbProxyTargetGroupsResponse>>any());
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                                                                       .desiredResourceState(model)

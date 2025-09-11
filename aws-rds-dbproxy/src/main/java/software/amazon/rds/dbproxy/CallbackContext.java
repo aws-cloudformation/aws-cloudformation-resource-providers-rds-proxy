@@ -1,9 +1,6 @@
 package software.amazon.rds.dbproxy;
 
-import java.util.List;
-
-import com.amazonaws.services.rds.model.DBProxy;
-import com.amazonaws.services.rds.model.DBProxyTarget;
+import software.amazon.awssdk.services.rds.model.DBProxy;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

@@ -1,10 +1,10 @@
 package software.amazon.rds.dbproxyendpoint;
 
-import com.amazonaws.services.rds.model.DBProxyEndpoint;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import software.amazon.awssdk.services.rds.model.DBProxyEndpoint;
 
 @Builder(toBuilder = true)
 @Data

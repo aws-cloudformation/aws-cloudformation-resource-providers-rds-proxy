@@ -3,15 +3,14 @@ package software.amazon.rds.dbproxy;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.amazonaws.services.rds.AmazonRDS;
-import com.amazonaws.services.rds.AmazonRDSClientBuilder;
-import com.amazonaws.services.rds.model.DBProxy;
-import com.amazonaws.services.rds.model.DBProxyNotFoundException;
-import com.amazonaws.services.rds.model.DescribeDBProxiesRequest;
-import com.amazonaws.services.rds.model.DescribeDBProxiesResult;
-import com.amazonaws.services.rds.model.ListTagsForResourceRequest;
-import com.amazonaws.services.rds.model.ListTagsForResourceResult;
-import com.amazonaws.services.rds.model.Tag;
+import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DbProxyNotFoundException;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxiesRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxiesResponse;
+import software.amazon.awssdk.services.rds.model.DBProxy;
+import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
+import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
+import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.cloudformation.exceptions.CfnNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
@@ -22,7 +21,7 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 
 public class ReadHandler extends BaseHandler<CallbackContext> {
     private AmazonWebServicesClientProxy clientProxy;
-    private AmazonRDS rdsClient;
+    private RdsClient rdsClient;
 
     @Override
     public ProgressEvent<ResourceModel, CallbackContext> handleRequest(
@@ -32,12 +31,12 @@ public class ReadHandler extends BaseHandler<CallbackContext> {
         final Logger logger) {
 
         clientProxy = proxy;
-        rdsClient = AmazonRDSClientBuilder.defaultClient();
+        rdsClient = RdsClient.create();
 
         final ResourceModel model;
         try {
             model = describeDBProxy(request.getDesiredResourceState().getDBProxyName());
-        } catch (DBProxyNotFoundException | CfnNotFoundException e) {
+        } catch (DbProxyNotFoundException | CfnNotFoundException e) {
             return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.NotFound);
         }
 
@@ -48,18 +47,18 @@ public class ReadHandler extends BaseHandler<CallbackContext> {
     }
 
     private ResourceModel describeDBProxy(final String proxyName) {
-        DescribeDBProxiesRequest request = new DescribeDBProxiesRequest().withDBProxyName(proxyName);
+        DescribeDbProxiesRequest request = DescribeDbProxiesRequest.builder().dbProxyName(proxyName).build();
 
-        final DescribeDBProxiesResult result = clientProxy.injectCredentialsAndInvoke(request, rdsClient::describeDBProxies);
+        final DescribeDbProxiesResponse response = clientProxy.injectCredentialsAndInvokeV2(request, rdsClient::describeDBProxies);
 
-        if (result != null && result.getDBProxies() != null && result.getDBProxies().size() == 1) {
-            DBProxy proxy = result.getDBProxies().get(0);
+        if (response != null && response.dbProxies() != null && response.dbProxies().size() == 1) {
+            DBProxy proxy = response.dbProxies().get(0);
             ResourceModel resourceModel = Utility.resultToModel(proxy);
-            ListTagsForResourceRequest tagRequest = new ListTagsForResourceRequest().withResourceName(proxy.getDBProxyArn());
+            ListTagsForResourceRequest tagRequest = ListTagsForResourceRequest.builder().resourceName(proxy.dbProxyArn()).build();
 
-            final ListTagsForResourceResult tagResult = clientProxy.injectCredentialsAndInvoke(tagRequest, rdsClient::listTagsForResource);
-            if (tagResult != null && tagResult.getTagList()!= null && tagResult.getTagList().size() > 0) {
-                resourceModel.setTags(convertTags(tagResult.getTagList()));
+            final ListTagsForResourceResponse tagsResponse = clientProxy.injectCredentialsAndInvokeV2(tagRequest, rdsClient::listTagsForResource);
+            if (tagsResponse != null && tagsResponse.tagList()!= null && !tagsResponse.tagList().isEmpty()) {
+                resourceModel.setTags(convertTags(tagsResponse.tagList()));
             }
             return resourceModel;
         } else {
@@ -70,14 +69,14 @@ public class ReadHandler extends BaseHandler<CallbackContext> {
     private List<TagFormat> convertTags(List<Tag> tags) {
         List<TagFormat> convertedTags = new ArrayList<>();
 
-        if (tags == null || tags.size() == 0) {
+        if (tags == null || tags.isEmpty()) {
             return convertedTags;
         }
 
         for(Tag tag : tags){
             convertedTags.add(TagFormat.builder()
-                                       .key(tag.getKey())
-                                       .value(tag.getValue())
+                                       .key(tag.key())
+                                       .value(tag.value())
                                        .build());
         }
 

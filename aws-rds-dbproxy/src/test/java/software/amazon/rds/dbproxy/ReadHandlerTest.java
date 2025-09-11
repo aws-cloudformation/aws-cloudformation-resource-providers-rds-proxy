@@ -17,16 +17,15 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.amazonaws.AmazonWebServiceResult;
-import com.amazonaws.ResponseMetadata;
-import com.amazonaws.services.rds.model.DBProxy;
-import com.amazonaws.services.rds.model.DBProxyNotFoundException;
-import com.amazonaws.services.rds.model.DescribeDBProxiesRequest;
-import com.amazonaws.services.rds.model.DescribeDBProxiesResult;
-import com.amazonaws.services.rds.model.ListTagsForResourceRequest;
-import com.amazonaws.services.rds.model.ListTagsForResourceResult;
-import com.amazonaws.services.rds.model.Tag;
+import software.amazon.awssdk.services.rds.model.DBProxy;
+
 import com.google.common.collect.ImmutableList;
+import software.amazon.awssdk.services.rds.model.DbProxyNotFoundException;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxiesRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxiesResponse;
+import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
+import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
+import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -53,21 +52,23 @@ public class ReadHandlerTest {
     public void handleRequest_SimpleSuccess() {
         final ReadHandler handler = new ReadHandler();
 
-        DBProxy proxy1 = new DBProxy().withDBProxyName("proxy1")
-                .withDBProxyArn("arn")
-                .withRoleArn("rolearn")
-                .withVpcId("vpcId")
-                .withVpcSubnetIds("vpcsubnet1", "vpcsubnet2")
-                .withVpcSecurityGroupIds("sg1", "sg2");
+        DBProxy proxy1 = DBProxy.builder()
+                .dbProxyName("proxy1")
+                .dbProxyArn("arn")
+                .roleArn("rolearn")
+                .vpcId("vpcId")
+                .vpcSubnetIds("vpcsubnet1", "vpcsubnet2")
+                .vpcSecurityGroupIds("sg1", "sg2")
+                .build();
         final List<DBProxy> existingProxies = ImmutableList.of(proxy1);
 
-        doReturn(new DescribeDBProxiesResult().withDBProxies(existingProxies))
+        doReturn(DescribeDbProxiesResponse.builder().dbProxies(existingProxies).build())
                 .when(proxy)
-                .injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class),
-                        ArgumentMatchers.<Function<DescribeDBProxiesRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+                .injectCredentialsAndInvokeV2(any(DescribeDbProxiesRequest.class),
+                        ArgumentMatchers.<Function<DescribeDbProxiesRequest, DescribeDbProxiesResponse>>any());
 
-        doReturn(new ListTagsForResourceResult()).when(proxy).injectCredentialsAndInvoke(any(ListTagsForResourceRequest.class),
-                ArgumentMatchers.<Function<ListTagsForResourceRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        doReturn(ListTagsForResourceResponse.builder().build()).when(proxy).injectCredentialsAndInvokeV2(any(ListTagsForResourceRequest.class),
+                ArgumentMatchers.<Function<ListTagsForResourceRequest, ListTagsForResourceResponse>>any());
 
         final ResourceModel model = ResourceModel.builder().dBProxyName("proxy1").build();
 
@@ -92,29 +93,31 @@ public class ReadHandlerTest {
     public void handleRequest_WithTags() {
         final ReadHandler handler = new ReadHandler();
 
-        DBProxy proxy1 = new DBProxy().withDBProxyName("proxy1")
-                .withDBProxyArn("arn")
-                .withRoleArn("rolearn")
-                .withVpcId("vpcId")
-                .withVpcSubnetIds("vpcsubnet1", "vpcsubnet2")
-                .withVpcSecurityGroupIds("sg1", "sg2");
+        DBProxy proxy1 = DBProxy.builder()
+                .dbProxyName("proxy1")
+                .dbProxyArn("arn")
+                .roleArn("rolearn")
+                .vpcId("vpcId")
+                .vpcSubnetIds("vpcsubnet1", "vpcsubnet2")
+                .vpcSecurityGroupIds("sg1", "sg2")
+                .build();
         final List<DBProxy> existingProxies = ImmutableList.of(proxy1);
 
-        doReturn(new DescribeDBProxiesResult().withDBProxies(existingProxies))
+        doReturn(DescribeDbProxiesResponse.builder().dbProxies(existingProxies).build())
                 .when(proxy)
-                .injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class),
-                        ArgumentMatchers.<Function<DescribeDBProxiesRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+                .injectCredentialsAndInvokeV2(any(DescribeDbProxiesRequest.class),
+                        ArgumentMatchers.<Function<DescribeDbProxiesRequest, DescribeDbProxiesResponse>>any());
 
         String tagKey = "tagKey";
         String tagValue = "tagValue";
         String tagKey2 = "tagKey2";
         String tagValue2 = "tagValue2";
-        List<Tag> tagList = ImmutableList.of(new Tag().withKey(tagKey).withValue(tagValue),
-                new Tag().withKey(tagKey2).withValue(tagValue2));
-        doReturn(new ListTagsForResourceResult().withTagList(tagList))
+        List<Tag> tagList = ImmutableList.of(Tag.builder().key(tagKey).value(tagValue).build(),
+                Tag.builder().key(tagKey2).value(tagValue2).build());
+        doReturn(ListTagsForResourceResponse.builder().tagList(tagList).build())
                 .when(proxy)
-                .injectCredentialsAndInvoke(any(ListTagsForResourceRequest.class),
-                        ArgumentMatchers.<Function<ListTagsForResourceRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+                .injectCredentialsAndInvokeV2(any(ListTagsForResourceRequest.class),
+                        ArgumentMatchers.<Function<ListTagsForResourceRequest, ListTagsForResourceResponse>>any());
 
         final ResourceModel model = ResourceModel.builder().dBProxyName("proxy1").build();
 
@@ -144,10 +147,10 @@ public class ReadHandlerTest {
     public void handleRequest_ResourceNotFound() {
         final ReadHandler handler = new ReadHandler();
 
-        doReturn(new DescribeDBProxiesResult())
+        doReturn(DescribeDbProxiesResponse.builder().build())
                 .when(proxy)
-                .injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class),
-                        ArgumentMatchers.<Function<DescribeDBProxiesRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+                .injectCredentialsAndInvokeV2(any(DescribeDbProxiesRequest.class),
+                        ArgumentMatchers.<Function<DescribeDbProxiesRequest, DescribeDbProxiesResponse>>any());
 
         final ResourceModel model = ResourceModel.builder().dBProxyName("proxy1").build();
 
@@ -171,11 +174,11 @@ public class ReadHandlerTest {
     public void handleRequest_ResourceNotFoundExceptionFromRDS() {
         final ReadHandler handler = new ReadHandler();
 
-        DBProxyNotFoundException exception = new DBProxyNotFoundException(TestConstants.NOT_FOUND_ERROR_MESSAGE);
+        DbProxyNotFoundException exception = DbProxyNotFoundException.builder().message(TestConstants.NOT_FOUND_ERROR_MESSAGE).build();
         doThrow(exception)
                 .when(proxy)
-                .injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class),
-                        ArgumentMatchers.<Function<DescribeDBProxiesRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+                .injectCredentialsAndInvokeV2(any(DescribeDbProxiesRequest.class),
+                        ArgumentMatchers.<Function<DescribeDbProxiesRequest, DescribeDbProxiesResponse>>any());
 
         final ResourceModel model = ResourceModel.builder().dBProxyName("proxy1").build();
 

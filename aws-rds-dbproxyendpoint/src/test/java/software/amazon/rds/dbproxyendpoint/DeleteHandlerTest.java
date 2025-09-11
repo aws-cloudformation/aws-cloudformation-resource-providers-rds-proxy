@@ -15,14 +15,12 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.amazonaws.AmazonWebServiceResult;
-import com.amazonaws.ResponseMetadata;
-import com.amazonaws.services.rds.model.DBProxyEndpoint;
-import com.amazonaws.services.rds.model.DBProxyEndpointNotFoundException;
-import com.amazonaws.services.rds.model.DeleteDBProxyEndpointRequest;
-import com.amazonaws.services.rds.model.DeleteDBProxyEndpointResult;
-import com.amazonaws.services.rds.model.DescribeDBProxyEndpointsRequest;
-import com.amazonaws.services.rds.model.DescribeDBProxyEndpointsResult;
+import software.amazon.awssdk.services.rds.model.DBProxyEndpoint;
+import software.amazon.awssdk.services.rds.model.DbProxyEndpointNotFoundException;
+import software.amazon.awssdk.services.rds.model.DeleteDbProxyEndpointRequest;
+import software.amazon.awssdk.services.rds.model.DeleteDbProxyEndpointResponse;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyEndpointsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyEndpointsResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -47,7 +45,7 @@ public class DeleteHandlerTest {
 
     @Test
     public void handleRequest_SimpleSuccess() {
-        DBProxyEndpoint dbProxyEndpoint = new DBProxyEndpoint().withStatus("deleting");
+        DBProxyEndpoint dbProxyEndpoint = DBProxyEndpoint.builder().status("deleting").build();
 
         final DeleteHandler handler = new DeleteHandler();
 
@@ -78,9 +76,9 @@ public class DeleteHandlerTest {
 
     @Test
     public void handleRequest_alreadyDeletedTest() {
-        DBProxyEndpointNotFoundException exception = new DBProxyEndpointNotFoundException(TestConstants.NOT_FOUND_ERROR_MESSAGE);
-        doThrow(exception).when(proxy).injectCredentialsAndInvoke(any(DeleteDBProxyEndpointRequest.class),
-                ArgumentMatchers.<Function<DeleteDBProxyEndpointRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        DbProxyEndpointNotFoundException exception = DbProxyEndpointNotFoundException.builder().message(TestConstants.NOT_FOUND_ERROR_MESSAGE).build();
+        doThrow(exception).when(proxy).injectCredentialsAndInvokeV2(any(DeleteDbProxyEndpointRequest.class),
+                ArgumentMatchers.<Function<DeleteDbProxyEndpointRequest, DeleteDbProxyEndpointResponse>>any());
 
         final DeleteHandler handler = new DeleteHandler();
 
@@ -99,7 +97,7 @@ public class DeleteHandlerTest {
 
         final CallbackContext desiredOutputContext = CallbackContext.builder()
                 .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
-                .proxyEndpoint(new DBProxyEndpoint())
+                .proxyEndpoint(DBProxyEndpoint.builder().build())
                 .build();
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
@@ -113,10 +111,10 @@ public class DeleteHandlerTest {
 
     @Test
     public void handleRequest_deleteTest() {
-        DBProxyEndpoint dbProxyEndpoint = new DBProxyEndpoint().withStatus("deleting");
-        doReturn(new DeleteDBProxyEndpointResult().withDBProxyEndpoint(dbProxyEndpoint)).when(proxy)
-                .injectCredentialsAndInvoke(any(DeleteDBProxyEndpointRequest.class),
-                        ArgumentMatchers.<Function<DeleteDBProxyEndpointRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        DBProxyEndpoint dbProxyEndpoint = DBProxyEndpoint.builder().status("deleting").build();
+        doReturn(DeleteDbProxyEndpointResponse.builder().dbProxyEndpoint(dbProxyEndpoint).build()).when(proxy)
+                .injectCredentialsAndInvokeV2(any(DeleteDbProxyEndpointRequest.class),
+                        ArgumentMatchers.<Function<DeleteDbProxyEndpointRequest, DeleteDbProxyEndpointResponse>>any());
 
         final DeleteHandler handler = new DeleteHandler();
 
@@ -149,10 +147,10 @@ public class DeleteHandlerTest {
 
     @Test
     public void handleRequest_deletingTest() {
-        DBProxyEndpoint dbProxyEndpoint = new DBProxyEndpoint().withStatus("deleting");
-        doReturn(new DescribeDBProxyEndpointsResult().withDBProxyEndpoints(dbProxyEndpoint)).when(proxy)
-                .injectCredentialsAndInvoke(any(DescribeDBProxyEndpointsRequest.class),
-                        ArgumentMatchers.<Function<DescribeDBProxyEndpointsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        DBProxyEndpoint dbProxyEndpoint = DBProxyEndpoint.builder().status("deleting").build();
+        doReturn(DescribeDbProxyEndpointsResponse.builder().dbProxyEndpoints(dbProxyEndpoint).build()).when(proxy)
+                .injectCredentialsAndInvokeV2(any(DescribeDbProxyEndpointsRequest.class),
+                        ArgumentMatchers.<Function<DescribeDbProxyEndpointsRequest, DescribeDbProxyEndpointsResponse>>any());
 
         final DeleteHandler handler = new DeleteHandler();
 
@@ -186,10 +184,10 @@ public class DeleteHandlerTest {
 
     @Test
     public void handleRequest_deletedTest() {
-        DBProxyEndpoint dbProxyEndpoint = new DBProxyEndpoint().withStatus("deleting");
-        doThrow(new DBProxyEndpointNotFoundException("")).when(proxy)
-                .injectCredentialsAndInvoke(any(DescribeDBProxyEndpointsRequest.class),
-                        ArgumentMatchers.<Function<DescribeDBProxyEndpointsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        DBProxyEndpoint dbProxyEndpoint = DBProxyEndpoint.builder().status("deleting").build();
+        doThrow(DbProxyEndpointNotFoundException.builder().message("").build()).when(proxy)
+                .injectCredentialsAndInvokeV2(any(DescribeDbProxyEndpointsRequest.class),
+                        ArgumentMatchers.<Function<DescribeDbProxyEndpointsRequest, DescribeDbProxyEndpointsResponse>>any());
 
         final DeleteHandler handler = new DeleteHandler();
 

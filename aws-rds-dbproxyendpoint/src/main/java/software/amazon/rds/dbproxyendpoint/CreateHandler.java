@@ -6,15 +6,14 @@ import java.util.Optional;
 
 import org.apache.commons.lang3.StringUtils;
 
-import com.amazonaws.services.rds.AmazonRDS;
-import com.amazonaws.services.rds.AmazonRDSClientBuilder;
-import com.amazonaws.services.rds.model.CreateDBProxyEndpointRequest;
-import com.amazonaws.services.rds.model.CreateDBProxyEndpointResult;
-import com.amazonaws.services.rds.model.DBProxyEndpoint;
-import com.amazonaws.services.rds.model.DBProxyEndpointAlreadyExistsException;
-import com.amazonaws.services.rds.model.DescribeDBProxyEndpointsRequest;
-import com.amazonaws.services.rds.model.DescribeDBProxyEndpointsResult;
-import com.amazonaws.services.rds.model.Tag;
+import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.CreateDbProxyEndpointRequest;
+import software.amazon.awssdk.services.rds.model.CreateDbProxyEndpointResponse;
+import software.amazon.awssdk.services.rds.model.DBProxyEndpoint;
+import software.amazon.awssdk.services.rds.model.DbProxyEndpointAlreadyExistsException;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyEndpointsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyEndpointsResponse;
+import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.cloudformation.exceptions.CfnInvalidRequestException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
@@ -31,7 +30,7 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
     public static final String VPC_ID_READ_ONLY_MESSAGE = "VpcId is a read-only property.";
 
     private AmazonWebServicesClientProxy clientProxy;
-    private AmazonRDS rdsClient;
+    private RdsClient rdsClient;
 
     @Override
     public ProgressEvent<ResourceModel, CallbackContext> handleRequest(
@@ -43,7 +42,7 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
         final ResourceModel model = request.getDesiredResourceState();
 
         clientProxy = proxy;
-        rdsClient = AmazonRDSClientBuilder.defaultClient();
+        rdsClient = RdsClient.create();
 
         final CallbackContext currentContext = Optional.ofNullable(callbackContext)
                 .orElse(CallbackContext.builder()
@@ -75,25 +74,25 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
                                 .stabilizationRetriesRemaining(Constants.NUMBER_OF_STATE_POLL_RETRIES)
                                 .build())
                         .build());
-            } catch (DBProxyEndpointAlreadyExistsException e) {
+            } catch (DbProxyEndpointAlreadyExistsException e) {
                 return ProgressEvent.defaultFailureHandler(e, HandlerErrorCode.AlreadyExists);
             }
-        } else if (endpointStateSoFar.getStatus().equals(Constants.AVAILABLE_ENDPOINT_STATE)) {
-            model.setDBProxyEndpointArn(endpointStateSoFar.getDBProxyEndpointArn());
-            model.setEndpoint(endpointStateSoFar.getEndpoint());
+        } else if (endpointStateSoFar.status().toString().equals(Constants.AVAILABLE_ENDPOINT_STATE)) {
+            model.setDBProxyEndpointArn(endpointStateSoFar.dbProxyEndpointArn());
+            model.setEndpoint(endpointStateSoFar.endpoint());
 
             return ProgressEvent.<ResourceModel, CallbackContext>builder()
                     .resourceModel(model)
                     .status(OperationStatus.SUCCESS)
                     .build();
-        } else if (Constants.TERMINAL_FAILURE_STATES.contains(endpointStateSoFar.getStatus())) {
+        } else if (Constants.TERMINAL_FAILURE_STATES.contains(endpointStateSoFar.status().toString())) {
             return ProgressEvent.<ResourceModel, CallbackContext>builder()
                     .status(OperationStatus.FAILED)
                     .errorCode(HandlerErrorCode.NotFound)
                     .build();
         } else {
-            model.setDBProxyEndpointArn(endpointStateSoFar.getDBProxyEndpointArn());
-            model.setEndpoint(endpointStateSoFar.getEndpoint());
+            model.setDBProxyEndpointArn(endpointStateSoFar.dbProxyEndpointArn());
+            model.setEndpoint(endpointStateSoFar.endpoint());
 
             try {
                 Thread.sleep(Constants.POLL_RETRY_DELAY_IN_MS);
@@ -101,7 +100,7 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
                 throw new RuntimeException(e);
             }
 
-            DBProxyEndpoint proxyEndpoint = updatedProxyEndpointProgress(endpointStateSoFar.getDBProxyEndpointName());
+            DBProxyEndpoint proxyEndpoint = updatedProxyEndpointProgress(endpointStateSoFar.dbProxyEndpointName());
             return ProgressEvent.<ResourceModel, CallbackContext>builder()
                     .resourceModel(model)
                     .status(OperationStatus.IN_PROGRESS)
@@ -116,16 +115,17 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
     private DBProxyEndpoint createProxyEndpoint(ResourceModel model) {
         List<Tag> tags = getTags(model);
 
-        CreateDBProxyEndpointRequest request = new CreateDBProxyEndpointRequest()
-                .withDBProxyName(model.getDBProxyName())
-                .withDBProxyEndpointName(model.getDBProxyEndpointName())
-                .withVpcSubnetIds(model.getVpcSubnetIds())
-                .withVpcSecurityGroupIds(model.getVpcSecurityGroupIds())
-                .withTargetRole(model.getTargetRole())
-                .withTags(tags);
+        CreateDbProxyEndpointRequest request = CreateDbProxyEndpointRequest.builder()
+                .dbProxyName(model.getDBProxyName())
+                .dbProxyEndpointName(model.getDBProxyEndpointName())
+                .vpcSubnetIds(model.getVpcSubnetIds())
+                .vpcSecurityGroupIds(model.getVpcSecurityGroupIds())
+                .targetRole(model.getTargetRole())
+                .tags(tags)
+                .build();
 
-        CreateDBProxyEndpointResult result = clientProxy.injectCredentialsAndInvoke(request, rdsClient::createDBProxyEndpoint);
-        return result.getDBProxyEndpoint();
+        CreateDbProxyEndpointResponse response = clientProxy.injectCredentialsAndInvokeV2(request, rdsClient::createDBProxyEndpoint);
+        return response.dbProxyEndpoint();
     }
 
     private List<Tag> getTags(ResourceModel model) {
@@ -136,22 +136,19 @@ public class CreateHandler extends BaseHandler<CallbackContext> {
         }
 
         for(TagFormat tag : model.getTags()){
-            Tag t = new Tag().withKey(tag.getKey()).withValue(tag.getValue());
+            Tag t = Tag.builder().key(tag.getKey()).value(tag.getValue()).build();
             tags.add(t);
         }
         return tags;
     }
 
     private DBProxyEndpoint updatedProxyEndpointProgress(String proxyEndpointName) {
-        DescribeDBProxyEndpointsRequest describeDBProxyEndpointsRequest;
-        DescribeDBProxyEndpointsResult describeDBProxyEndpointsResult;
-
-        describeDBProxyEndpointsRequest = new DescribeDBProxyEndpointsRequest().withDBProxyEndpointName(proxyEndpointName);
-        describeDBProxyEndpointsResult = clientProxy.injectCredentialsAndInvoke(describeDBProxyEndpointsRequest, rdsClient::describeDBProxyEndpoints);
-        return describeDBProxyEndpointsResult.getDBProxyEndpoints()
+        DescribeDbProxyEndpointsRequest describeDBProxyEndpointsRequest = DescribeDbProxyEndpointsRequest.builder().dbProxyEndpointName(proxyEndpointName).build();
+        DescribeDbProxyEndpointsResponse describeDbProxyEndpointsResponse = clientProxy.injectCredentialsAndInvokeV2(describeDBProxyEndpointsRequest, rdsClient::describeDBProxyEndpoints);
+        return describeDbProxyEndpointsResponse.dbProxyEndpoints()
                 .stream()
                 .findFirst()
-                .orElse(new DBProxyEndpoint());
+                .orElse(DBProxyEndpoint.builder().build());
     }
 
     /**

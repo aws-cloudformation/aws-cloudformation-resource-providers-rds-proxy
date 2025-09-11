@@ -16,12 +16,10 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.amazonaws.AmazonWebServiceResult;
-import com.amazonaws.ResponseMetadata;
-import com.amazonaws.services.rds.model.DBProxy;
-import com.amazonaws.services.rds.model.DescribeDBProxiesRequest;
-import com.amazonaws.services.rds.model.DescribeDBProxiesResult;
+import software.amazon.awssdk.services.rds.model.DBProxy;
 import com.google.common.collect.ImmutableList;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxiesRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxiesResponse;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.OperationStatus;
@@ -49,14 +47,14 @@ public class ListHandlerTest {
 
         final ResourceModel model = ResourceModel.builder().build();
 
-        DBProxy proxy1 = new DBProxy().withDBProxyName("proxy1");
-        DBProxy proxy2 = new DBProxy().withDBProxyName("proxy2");
+        DBProxy proxy1 = DBProxy.builder().dbProxyName("proxy1").build();
+        DBProxy proxy2 = DBProxy.builder().dbProxyName("proxy2").build();
         final List<DBProxy> existingProxies = ImmutableList.of(proxy1, proxy2);
 
-        doReturn(new DescribeDBProxiesResult().withDBProxies(existingProxies))
+        doReturn(DescribeDbProxiesResponse.builder().dbProxies(existingProxies).build())
                 .when(proxy)
-                .injectCredentialsAndInvoke(any(DescribeDBProxiesRequest.class),
-                        ArgumentMatchers.<Function<DescribeDBProxiesRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+                .injectCredentialsAndInvokeV2(any(DescribeDbProxiesRequest.class),
+                        ArgumentMatchers.<Function<DescribeDbProxiesRequest, DescribeDbProxiesResponse>>any());
 
 
         final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()

@@ -4,14 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import com.amazonaws.services.rds.AmazonRDS;
-import com.amazonaws.services.rds.AmazonRDSClientBuilder;
-import com.amazonaws.services.rds.model.DBProxyTarget;
-import com.amazonaws.services.rds.model.DeregisterDBProxyTargetsRequest;
-import com.amazonaws.services.rds.model.DescribeDBProxyTargetGroupsRequest;
-import com.amazonaws.services.rds.model.DescribeDBProxyTargetGroupsResult;
-import com.amazonaws.services.rds.model.DescribeDBProxyTargetsRequest;
-import com.amazonaws.services.rds.model.DescribeDBProxyTargetsResult;
+import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DBProxyTarget;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyTargetGroupsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyTargetGroupsResponse;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyTargetsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyTargetsResponse;
 import software.amazon.cloudformation.exceptions.CfnNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
@@ -21,7 +19,7 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 
 public class ReadHandler extends BaseHandler<CallbackContext> {
     private AmazonWebServicesClientProxy clientProxy;
-    private AmazonRDS rdsClient;
+    private RdsClient rdsClient;
 
     @Override
     public ProgressEvent<ResourceModel, CallbackContext> handleRequest(
@@ -36,7 +34,7 @@ public class ReadHandler extends BaseHandler<CallbackContext> {
         String targetGroupName = Optional.ofNullable(desiredResource.getTargetGroupName()).orElse("default");
 
         clientProxy = proxy;
-        rdsClient = AmazonRDSClientBuilder.defaultClient();
+        rdsClient = RdsClient.create();
 
         final ResourceModel model = describeDBProxyTargetGroup(proxyName, targetGroupName);
 
@@ -48,27 +46,29 @@ public class ReadHandler extends BaseHandler<CallbackContext> {
 
     private ResourceModel describeDBProxyTargetGroup(final String proxyName,
                                                      final String targetGroupName) {
-        DescribeDBProxyTargetGroupsRequest request = new DescribeDBProxyTargetGroupsRequest()
-                                                             .withDBProxyName(proxyName)
-                                                             .withTargetGroupName(targetGroupName);
+        DescribeDbProxyTargetGroupsRequest request = DescribeDbProxyTargetGroupsRequest.builder()
+                                                             .dbProxyName(proxyName)
+                                                             .targetGroupName(targetGroupName)
+                                                             .build();
 
-        final DescribeDBProxyTargetGroupsResult result = clientProxy.injectCredentialsAndInvoke(request, rdsClient::describeDBProxyTargetGroups);
+        final DescribeDbProxyTargetGroupsResponse response = clientProxy.injectCredentialsAndInvokeV2(request, rdsClient::describeDBProxyTargetGroups);
 
-        if (result != null && result.getTargetGroups() != null && result.getTargetGroups().size() == 1) {
-            ResourceModel resourceModel = Utility.resultToModel(result.getTargetGroups().get(0));
+        if (response != null && response.targetGroups() != null && response.targetGroups().size() == 1) {
+            ResourceModel resourceModel = Utility.resultToModel(response.targetGroups().get(0));
 
-            DescribeDBProxyTargetsRequest targetsRequest = new DescribeDBProxyTargetsRequest()
-                                                                         .withDBProxyName(proxyName)
-                                                                         .withTargetGroupName(targetGroupName);
-            final DescribeDBProxyTargetsResult targetsResult = clientProxy.injectCredentialsAndInvoke(targetsRequest, rdsClient::describeDBProxyTargets);
-            if (targetsResult != null) {
+            DescribeDbProxyTargetsRequest targetsRequest = DescribeDbProxyTargetsRequest.builder()
+                                                                         .dbProxyName(proxyName)
+                                                                         .targetGroupName(targetGroupName)
+                                                                         .build();
+            final DescribeDbProxyTargetsResponse targetsResponse = clientProxy.injectCredentialsAndInvokeV2(targetsRequest, rdsClient::describeDBProxyTargets);
+            if (targetsResponse != null) {
                 List<String> dbClusters = new ArrayList<>();
                 List<String> dbInstances = new ArrayList<>();
-                for (DBProxyTarget target: targetsResult.getTargets()) {
-                    if (target.getType().equals("TRACKED_CLUSTER")) {
-                        dbClusters.add(target.getRdsResourceId());
+                for (DBProxyTarget target: targetsResponse.targets()) {
+                    if (target.type().toString().equals("TRACKED_CLUSTER")) {
+                        dbClusters.add(target.rdsResourceId());
                     } else {
-                        dbInstances.add(target.getRdsResourceId());
+                        dbInstances.add(target.rdsResourceId());
                     }
                 }
 

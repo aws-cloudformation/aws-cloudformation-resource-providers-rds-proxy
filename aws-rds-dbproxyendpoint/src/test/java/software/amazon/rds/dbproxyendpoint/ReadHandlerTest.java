@@ -17,16 +17,14 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.amazonaws.AmazonWebServiceResult;
-import com.amazonaws.ResponseMetadata;
-import com.amazonaws.services.rds.model.DBProxyEndpoint;
-import com.amazonaws.services.rds.model.DBProxyEndpointNotFoundException;
-import com.amazonaws.services.rds.model.DescribeDBProxyEndpointsRequest;
-import com.amazonaws.services.rds.model.DescribeDBProxyEndpointsResult;
-import com.amazonaws.services.rds.model.ListTagsForResourceRequest;
-import com.amazonaws.services.rds.model.ListTagsForResourceResult;
-import com.amazonaws.services.rds.model.Tag;
 import com.google.common.collect.ImmutableList;
+import software.amazon.awssdk.services.rds.model.DBProxyEndpoint;
+import software.amazon.awssdk.services.rds.model.DbProxyEndpointNotFoundException;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyEndpointsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyEndpointsResponse;
+import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
+import software.amazon.awssdk.services.rds.model.ListTagsForResourceResponse;
+import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
@@ -53,23 +51,24 @@ public class ReadHandlerTest {
     public void handleRequest_SimpleSuccess() {
         final ReadHandler handler = new ReadHandler();
 
-        DBProxyEndpoint proxyEndpoint1 = new DBProxyEndpoint()
-                .withDBProxyEndpointName("proxyEndpoint1")
-                .withDBProxyEndpointArn("arn")
-                .withDBProxyName("proxy1")
-                .withVpcSubnetIds("vpcsubnet1", "vpcsubnet2")
-                .withVpcSecurityGroupIds("sg1", "sg2")
-                .withEndpoint("endpoint1");
+        DBProxyEndpoint proxyEndpoint1 = DBProxyEndpoint.builder()
+                .dbProxyEndpointName("proxyEndpoint1")
+                .dbProxyEndpointArn("arn")
+                .dbProxyName("proxy1")
+                .vpcSubnetIds("vpcsubnet1", "vpcsubnet2")
+                .vpcSecurityGroupIds("sg1", "sg2")
+                .endpoint("endpoint1")
+                .build();
         final List<DBProxyEndpoint> existingProxyEndpoints = ImmutableList.of(proxyEndpoint1);
 
-        doReturn(new DescribeDBProxyEndpointsResult().withDBProxyEndpoints(existingProxyEndpoints))
+        doReturn(DescribeDbProxyEndpointsResponse.builder().dbProxyEndpoints(existingProxyEndpoints).build())
                 .when(proxy)
-                .injectCredentialsAndInvoke(any(DescribeDBProxyEndpointsRequest.class),
-                        ArgumentMatchers.<Function<DescribeDBProxyEndpointsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+                .injectCredentialsAndInvokeV2(any(DescribeDbProxyEndpointsRequest.class),
+                        ArgumentMatchers.<Function<DescribeDbProxyEndpointsRequest, DescribeDbProxyEndpointsResponse>>any());
 
-        doReturn(new ListTagsForResourceResult()).when(proxy)
-                .injectCredentialsAndInvoke(any(ListTagsForResourceRequest.class),
-                        ArgumentMatchers.<Function<ListTagsForResourceRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        doReturn(ListTagsForResourceResponse.builder().build()).when(proxy)
+                .injectCredentialsAndInvokeV2(any(ListTagsForResourceRequest.class),
+                        ArgumentMatchers.<Function<ListTagsForResourceRequest, ListTagsForResourceResponse>>any());
 
         final ResourceModel model = ResourceModel.builder().dBProxyEndpointName("proxyEndpoint1").build();
 
@@ -94,30 +93,32 @@ public class ReadHandlerTest {
     public void handleRequest_WithTags() {
         final ReadHandler handler = new ReadHandler();
 
-        DBProxyEndpoint proxyEndpoint1 = new DBProxyEndpoint()
-                .withDBProxyEndpointName("proxyEndpoint1")
-                .withDBProxyEndpointArn("arn")
-                .withDBProxyName("proxy1")
-                .withVpcSubnetIds("vpcsubnet1", "vpcsubnet2")
-                .withVpcSecurityGroupIds("sg1", "sg2")
-                .withEndpoint("endpoint1");
+        DBProxyEndpoint proxyEndpoint1 = DBProxyEndpoint.builder()
+                .dbProxyEndpointName("proxyEndpoint1")
+                .dbProxyEndpointArn("arn")
+                .dbProxyName("proxy1")
+                .vpcSubnetIds("vpcsubnet1", "vpcsubnet2")
+                .vpcSecurityGroupIds("sg1", "sg2")
+                .endpoint("endpoint1")
+                .build();
+
         final List<DBProxyEndpoint> existingProxyEndpoints = ImmutableList.of(proxyEndpoint1);
 
-        doReturn(new DescribeDBProxyEndpointsResult().withDBProxyEndpoints(existingProxyEndpoints))
+        doReturn(DescribeDbProxyEndpointsResponse.builder().dbProxyEndpoints(existingProxyEndpoints).build())
                 .when(proxy)
-                .injectCredentialsAndInvoke(any(DescribeDBProxyEndpointsRequest.class),
-                        ArgumentMatchers.<Function<DescribeDBProxyEndpointsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+                .injectCredentialsAndInvokeV2(any(DescribeDbProxyEndpointsRequest.class),
+                        ArgumentMatchers.<Function<DescribeDbProxyEndpointsRequest, DescribeDbProxyEndpointsResponse>>any());
 
         String tagKey = "tagKey";
         String tagValue = "tagValue";
         String tagKey2 = "tagKey2";
         String tagValue2 = "tagValue2";
-        List<Tag> tagList = ImmutableList.of(new Tag().withKey(tagKey).withValue(tagValue),
-                new Tag().withKey(tagKey2).withValue(tagValue2));
-        doReturn(new ListTagsForResourceResult().withTagList(tagList))
+        List<Tag> tagList = ImmutableList.of(Tag.builder().key(tagKey).value(tagValue).build(),
+                Tag.builder().key(tagKey2).value(tagValue2).build());
+        doReturn(ListTagsForResourceResponse.builder().tagList(tagList).build())
                 .when(proxy)
-                .injectCredentialsAndInvoke(any(ListTagsForResourceRequest.class),
-                        ArgumentMatchers.<Function<ListTagsForResourceRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+                .injectCredentialsAndInvokeV2(any(ListTagsForResourceRequest.class),
+                        ArgumentMatchers.<Function<ListTagsForResourceRequest, ListTagsForResourceResponse>>any());
 
         final ResourceModel model = ResourceModel.builder().dBProxyEndpointName("proxyEndpoint1").build();
 
@@ -147,10 +148,10 @@ public class ReadHandlerTest {
     public void handleRequest_ResourceNotFound() {
         final ReadHandler handler = new ReadHandler();
 
-        doReturn(new DescribeDBProxyEndpointsResult())
+        doReturn(DescribeDbProxyEndpointsResponse.builder().build())
                 .when(proxy)
-                .injectCredentialsAndInvoke(any(DescribeDBProxyEndpointsRequest.class),
-                        ArgumentMatchers.<Function<DescribeDBProxyEndpointsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+                .injectCredentialsAndInvokeV2(any(DescribeDbProxyEndpointsRequest.class),
+                        ArgumentMatchers.<Function<DescribeDbProxyEndpointsRequest, DescribeDbProxyEndpointsResponse>>any());
 
         final ResourceModel model = ResourceModel.builder().dBProxyEndpointName("proxyEndpoint1").build();
 
@@ -174,11 +175,11 @@ public class ReadHandlerTest {
     public void handleRequest_ResourceNotFoundExceptionFromRDS() {
         final ReadHandler handler = new ReadHandler();
 
-        DBProxyEndpointNotFoundException exception = new DBProxyEndpointNotFoundException(TestConstants.NOT_FOUND_ERROR_MESSAGE);
+        DbProxyEndpointNotFoundException exception = DbProxyEndpointNotFoundException.builder().message(TestConstants.NOT_FOUND_ERROR_MESSAGE).build();
         doThrow(exception)
                 .when(proxy)
-                .injectCredentialsAndInvoke(any(DescribeDBProxyEndpointsRequest.class),
-                        ArgumentMatchers.<Function<DescribeDBProxyEndpointsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+                .injectCredentialsAndInvokeV2(any(DescribeDbProxyEndpointsRequest.class),
+                        ArgumentMatchers.<Function<DescribeDbProxyEndpointsRequest, DescribeDbProxyEndpointsResponse>>any());
 
         final ResourceModel model = ResourceModel.builder().dBProxyEndpointName("proxyEndpoint1").build();
 

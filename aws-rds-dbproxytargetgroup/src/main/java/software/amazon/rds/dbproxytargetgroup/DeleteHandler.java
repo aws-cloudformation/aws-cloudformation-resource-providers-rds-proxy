@@ -4,14 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import com.amazonaws.services.rds.AmazonRDS;
-import com.amazonaws.services.rds.AmazonRDSClientBuilder;
-import com.amazonaws.services.rds.model.DBProxyNotFoundException;
-import com.amazonaws.services.rds.model.DBProxyTarget;
-import com.amazonaws.services.rds.model.DeregisterDBProxyTargetsRequest;
-import com.amazonaws.services.rds.model.DescribeDBProxyTargetsRequest;
-import com.amazonaws.services.rds.model.DescribeDBProxyTargetsResult;
-import com.amazonaws.services.rds.model.InvalidDBProxyStateException;
+import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DBProxyTarget;
+import software.amazon.awssdk.services.rds.model.DbProxyNotFoundException;
+import software.amazon.awssdk.services.rds.model.DeregisterDbProxyTargetsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyTargetsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyTargetsResponse;
+import software.amazon.awssdk.services.rds.model.InvalidDbProxyStateException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.OperationStatus;
@@ -21,7 +20,7 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 public class DeleteHandler extends BaseHandler<CallbackContext> {
 
     private AmazonWebServicesClientProxy clientProxy;
-    private AmazonRDS rdsClient;
+    private RdsClient rdsClient;
     private Logger logger;
 
     @Override
@@ -34,7 +33,7 @@ public class DeleteHandler extends BaseHandler<CallbackContext> {
         final ResourceModel model = request.getDesiredResourceState();
 
         clientProxy = proxy;
-        rdsClient = AmazonRDSClientBuilder.defaultClient();
+        rdsClient = RdsClient.create();
         this.logger = logger;
 
         final CallbackContext currentContext = Optional.ofNullable(callbackContext)
@@ -69,10 +68,10 @@ public class DeleteHandler extends BaseHandler<CallbackContext> {
     private boolean deregisterOldTargetsHelper(ResourceModel model) {
         try {
             return deregisterOldTargets(model);
-        } catch (DBProxyNotFoundException e) {
+        } catch (DbProxyNotFoundException e) {
             // Proxy is already deleted, no need to deregister
             return true;
-        } catch (InvalidDBProxyStateException e) {
+        } catch (InvalidDbProxyStateException e) {
             if (e.getMessage().contains("DELETING")) {
                 // Proxy is deleting, no need to deregister
                 return true;
@@ -85,32 +84,35 @@ public class DeleteHandler extends BaseHandler<CallbackContext> {
         String proxyName = model.getDBProxyName();
         String targetGroupName = Optional.ofNullable(model.getTargetGroupName()).orElse("default");
 
-        DescribeDBProxyTargetsRequest describeDBProxyTargetsRequest = new DescribeDBProxyTargetsRequest()
-                                                                              .withDBProxyName(proxyName)
-                                                                              .withTargetGroupName(targetGroupName);
+        DescribeDbProxyTargetsRequest describeDBProxyTargetsRequest = DescribeDbProxyTargetsRequest.builder()
+                                                                              .dbProxyName(proxyName)
+                                                                              .targetGroupName(targetGroupName)
+                                                                              .build();
 
-        DescribeDBProxyTargetsResult describeResult = clientProxy.injectCredentialsAndInvoke(describeDBProxyTargetsRequest, rdsClient::describeDBProxyTargets);
+        DescribeDbProxyTargetsResponse describeResponse = clientProxy.injectCredentialsAndInvokeV2(describeDBProxyTargetsRequest, rdsClient::describeDBProxyTargets);
 
         List<String> dbClusters = new ArrayList<>();
         List<String> dbInstances = new ArrayList<>();
-        for (DBProxyTarget target: describeResult.getTargets()) {
-            if (target.getType().equals("TRACKED_CLUSTER")) {
-                dbClusters.add(target.getRdsResourceId());
+        for (DBProxyTarget target: describeResponse.targets()) {
+            if (target.type().toString().equals("TRACKED_CLUSTER")) {
+                dbClusters.add(target.rdsResourceId());
             } else {
-                dbInstances.add(target.getRdsResourceId());
+                dbInstances.add(target.rdsResourceId());
             }
         }
 
-        if (dbClusters.size() > 0) {
-            DeregisterDBProxyTargetsRequest deregisterRequest = new DeregisterDBProxyTargetsRequest()
-                                                                        .withDBProxyName(model.getDBProxyName())
-                                                                        .withDBClusterIdentifiers(dbClusters);
-            clientProxy.injectCredentialsAndInvoke(deregisterRequest, rdsClient::deregisterDBProxyTargets);
-        } else if (dbInstances.size() > 0){
-            DeregisterDBProxyTargetsRequest deregisterRequest = new DeregisterDBProxyTargetsRequest()
-                                                                        .withDBProxyName(model.getDBProxyName())
-                                                                        .withDBInstanceIdentifiers(dbInstances);
-            clientProxy.injectCredentialsAndInvoke(deregisterRequest, rdsClient::deregisterDBProxyTargets);
+        if (!dbClusters.isEmpty()) {
+            DeregisterDbProxyTargetsRequest deregisterRequest = DeregisterDbProxyTargetsRequest.builder()
+                                                                        .dbProxyName(model.getDBProxyName())
+                                                                        .dbClusterIdentifiers(dbClusters)
+                                                                        .build();
+            clientProxy.injectCredentialsAndInvokeV2(deregisterRequest, rdsClient::deregisterDBProxyTargets);
+        } else if (!dbInstances.isEmpty()){
+            DeregisterDbProxyTargetsRequest deregisterRequest = DeregisterDbProxyTargetsRequest.builder()
+                                                                        .dbProxyName(model.getDBProxyName())
+                                                                        .dbInstanceIdentifiers(dbInstances)
+                                                                        .build();
+            clientProxy.injectCredentialsAndInvokeV2(deregisterRequest, rdsClient::deregisterDBProxyTargets);
         }
 
         return true;

@@ -17,15 +17,15 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.amazonaws.AmazonWebServiceResult;
-import com.amazonaws.ResponseMetadata;
-import com.amazonaws.services.rds.model.AddTagsToResourceRequest;
-import com.amazonaws.services.rds.model.DBProxy;
-import com.amazonaws.services.rds.model.ModifyDBProxyRequest;
-import com.amazonaws.services.rds.model.ModifyDBProxyResult;
-import com.amazonaws.services.rds.model.RemoveTagsFromResourceRequest;
-import com.amazonaws.services.rds.model.Tag;
+import software.amazon.awssdk.services.rds.model.AddTagsToResourceRequest;
+import software.amazon.awssdk.services.rds.model.AddTagsToResourceResponse;
+import software.amazon.awssdk.services.rds.model.DBProxy;
 import com.google.common.collect.ImmutableList;
+import software.amazon.awssdk.services.rds.model.ModifyDbProxyRequest;
+import software.amazon.awssdk.services.rds.model.ModifyDbProxyResponse;
+import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceRequest;
+import software.amazon.awssdk.services.rds.model.RemoveTagsFromResourceResponse;
+import software.amazon.awssdk.services.rds.model.Tag;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.OperationStatus;
@@ -49,7 +49,7 @@ public class UpdateHandlerTest {
 
     @Test
     public void handleRequest_SimpleSuccess() {
-        DBProxy dbProxy = new DBProxy().withStatus(AVAILABLE_PROXY_STATE);
+        DBProxy dbProxy = DBProxy.builder().status(AVAILABLE_PROXY_STATE).build();
         final CallbackContext context = CallbackContext.builder()
                                                        .proxy(dbProxy)
                                                        .stabilizationRetriesRemaining(1)
@@ -81,9 +81,9 @@ public class UpdateHandlerTest {
 
     @Test
     public void testModifyProxy() {
-        DBProxy dbProxy = new DBProxy().withStatus(AVAILABLE_PROXY_STATE);
-        doReturn(new ModifyDBProxyResult().withDBProxy(dbProxy)).when(proxy).injectCredentialsAndInvoke(any(ModifyDBProxyRequest.class),
-                ArgumentMatchers.<Function<ModifyDBProxyRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        DBProxy dbProxy = DBProxy.builder().status(AVAILABLE_PROXY_STATE).build();
+        doReturn(ModifyDbProxyResponse.builder().dbProxy(dbProxy).build()).when(proxy).injectCredentialsAndInvokeV2(any(ModifyDbProxyRequest.class),
+                ArgumentMatchers.<Function<ModifyDbProxyRequest, ModifyDbProxyResponse>>any());
 
         final CallbackContext context = CallbackContext.builder()
                                                        .stabilizationRetriesRemaining(1)
@@ -118,7 +118,7 @@ public class UpdateHandlerTest {
 
     @Test
     public void testDeregisterTags() {
-        DBProxy dbProxy = new DBProxy().withStatus(AVAILABLE_PROXY_STATE);
+        DBProxy dbProxy = DBProxy.builder().status(AVAILABLE_PROXY_STATE).build();
         final CallbackContext context = CallbackContext.builder()
                                                        .stabilizationRetriesRemaining(1)
                                                        .proxy(dbProxy)
@@ -158,15 +158,15 @@ public class UpdateHandlerTest {
         assertThat(response.getErrorCode()).isNull();
 
         ArgumentCaptor<RemoveTagsFromResourceRequest> captor = ArgumentCaptor.forClass(RemoveTagsFromResourceRequest.class);
-        verify(proxy).injectCredentialsAndInvoke(captor.capture(),
-                ArgumentMatchers.<Function<RemoveTagsFromResourceRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        verify(proxy).injectCredentialsAndInvokeV2(captor.capture(),
+                ArgumentMatchers.<Function<RemoveTagsFromResourceRequest, RemoveTagsFromResourceResponse>>any());
         RemoveTagsFromResourceRequest removeTagsRequest = captor.getValue();
-        assertThat(removeTagsRequest.getTagKeys().size()).isEqualTo(2);
+        assertThat(removeTagsRequest.tagKeys().size()).isEqualTo(2);
     }
 
     @Test
     public void testRegisterTags() {
-        DBProxy dbProxy = new DBProxy().withStatus(AVAILABLE_PROXY_STATE);
+        DBProxy dbProxy = DBProxy.builder().status(AVAILABLE_PROXY_STATE).build();
         final CallbackContext context = CallbackContext.builder()
                                                        .stabilizationRetriesRemaining(1)
                                                        .tagsDeregistered(true)
@@ -209,15 +209,15 @@ public class UpdateHandlerTest {
         assertThat(response.getErrorCode()).isNull();
 
         ArgumentCaptor<AddTagsToResourceRequest> captor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
-        verify(proxy).injectCredentialsAndInvoke(captor.capture(),
-                ArgumentMatchers.<Function<AddTagsToResourceRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        verify(proxy).injectCredentialsAndInvokeV2(captor.capture(),
+                ArgumentMatchers.<Function<AddTagsToResourceRequest, AddTagsToResourceResponse>>any());
         AddTagsToResourceRequest removeTagsRequest = captor.getValue();
-        assertThat(removeTagsRequest.getTags().size()).isEqualTo(2);
+        assertThat(removeTagsRequest.tags().size()).isEqualTo(2);
     }
 
     @Test
     public void testChangedTagValue_deregister() {
-        DBProxy dbProxy = new DBProxy().withStatus(AVAILABLE_PROXY_STATE);
+        DBProxy dbProxy = DBProxy.builder().status(AVAILABLE_PROXY_STATE).build();
         final CallbackContext context = CallbackContext.builder()
                                                        .stabilizationRetriesRemaining(1)
                                                        .proxy(dbProxy)
@@ -262,16 +262,16 @@ public class UpdateHandlerTest {
         assertThat(response.getErrorCode()).isNull();
 
         ArgumentCaptor<RemoveTagsFromResourceRequest> captor = ArgumentCaptor.forClass(RemoveTagsFromResourceRequest.class);
-        verify(proxy).injectCredentialsAndInvoke(captor.capture(),
-                ArgumentMatchers.<Function<RemoveTagsFromResourceRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        verify(proxy).injectCredentialsAndInvokeV2(captor.capture(),
+                ArgumentMatchers.<Function<RemoveTagsFromResourceRequest, RemoveTagsFromResourceResponse>>any());
         RemoveTagsFromResourceRequest removeTagsRequest = captor.getValue();
-        assertThat(removeTagsRequest.getTagKeys().size()).isEqualTo(1);
-        assertThat(removeTagsRequest.getTagKeys().get(0)).isEqualTo(sharedKey);
+        assertThat(removeTagsRequest.tagKeys().size()).isEqualTo(1);
+        assertThat(removeTagsRequest.tagKeys().get(0)).isEqualTo(sharedKey);
     }
 
     @Test
     public void testChangedTagValue_Register() {
-        DBProxy dbProxy = new DBProxy().withStatus(AVAILABLE_PROXY_STATE);
+        DBProxy dbProxy = DBProxy.builder().status(AVAILABLE_PROXY_STATE).build();
         final CallbackContext context = CallbackContext.builder()
                                                        .stabilizationRetriesRemaining(1)
                                                        .tagsDeregistered(true)
@@ -319,12 +319,12 @@ public class UpdateHandlerTest {
         assertThat(response.getErrorCode()).isNull();
 
         ArgumentCaptor<AddTagsToResourceRequest> captor = ArgumentCaptor.forClass(AddTagsToResourceRequest.class);
-        verify(proxy).injectCredentialsAndInvoke(captor.capture(),
-                ArgumentMatchers.<Function<AddTagsToResourceRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        verify(proxy).injectCredentialsAndInvokeV2(captor.capture(),
+                ArgumentMatchers.<Function<AddTagsToResourceRequest, AddTagsToResourceResponse>>any());
         AddTagsToResourceRequest addTagRequest = captor.getValue();
-        assertThat(addTagRequest.getTags().size()).isEqualTo(1);
-        Tag addedTag = addTagRequest.getTags().get(0);
-        assertThat(addedTag.getKey()).isEqualTo(sharedKey);
-        assertThat(addedTag.getValue()).isEqualTo(newValue);
+        assertThat(addTagRequest.tags().size()).isEqualTo(1);
+        Tag addedTag = addTagRequest.tags().get(0);
+        assertThat(addedTag.key()).isEqualTo(sharedKey);
+        assertThat(addedTag.value()).isEqualTo(newValue);
     }
 }

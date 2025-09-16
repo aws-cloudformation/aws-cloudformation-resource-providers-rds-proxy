@@ -8,9 +8,10 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import com.amazonaws.services.rds.model.DBProxy;
-import com.amazonaws.services.rds.model.UserAuthConfig;
-import com.amazonaws.services.rds.model.UserAuthConfigInfo;
+import software.amazon.awssdk.services.rds.model.DBProxy;
+import software.amazon.awssdk.services.rds.model.UserAuthConfig;
+import software.amazon.awssdk.services.rds.model.UserAuthConfigInfo;
+
 
 public class Utility {
     static <A, B> List<B> map(Collection<A> xs, Function<A, B> f) {
@@ -18,32 +19,32 @@ public class Utility {
                 .collect(Collectors.toList());
     }
 
-    public static ResourceModel resultToModel(DBProxy proxy){
-        List<AuthFormat> authModels = proxy.getAuth().stream().map(a -> resultToModel(a)).collect(Collectors.toList());
+    public static ResourceModel resultToModel(DBProxy proxy) {
+        List<AuthFormat> authModels = proxy.auth().stream().map(a -> resultToModel(a)).collect(Collectors.toList());
         return ResourceModel
                 .builder()
                 .auth(authModels)
-                .dBProxyArn(proxy.getDBProxyArn())
-                .dBProxyName(proxy.getDBProxyName())
-                .debugLogging(proxy.getDebugLogging())
-                .endpoint(proxy.getEndpoint())
-                .engineFamily(proxy.getEngineFamily())
-                .idleClientTimeout(proxy.getIdleClientTimeout())
-                .requireTLS(proxy.getRequireTLS())
-                .roleArn(proxy.getRoleArn())
-                .vpcId(proxy.getVpcId())
-                .vpcSecurityGroupIds(proxy.getVpcSecurityGroupIds())
-                .vpcSubnetIds(proxy.getVpcSubnetIds())
+                .dBProxyArn(proxy.dbProxyArn())
+                .dBProxyName(proxy.dbProxyName())
+                .debugLogging(proxy.debugLogging())
+                .endpoint(proxy.endpoint())
+                .engineFamily(proxy.engineFamily())
+                .idleClientTimeout(proxy.idleClientTimeout())
+                .requireTLS(proxy.requireTLS())
+                .roleArn(proxy.roleArn())
+                .vpcId(proxy.vpcId())
+                .vpcSecurityGroupIds(proxy.vpcSecurityGroupIds())
+                .vpcSubnetIds(proxy.vpcSubnetIds())
                 .build();
     }
 
     public static AuthFormat resultToModel(UserAuthConfigInfo auth) {
         return AuthFormat.builder()
-                .authScheme(auth.getAuthScheme())
-                .description(auth.getDescription())
-                .iAMAuth(auth.getIAMAuth())
-                .secretArn(auth.getSecretArn())
-                .clientPasswordAuthType(auth.getClientPasswordAuthType())
+                .authScheme(auth.authScheme() != null ? auth.authScheme().toString() : null)
+                .description(auth.description())
+                .iAMAuth(auth.iamAuth() != null ? auth.iamAuth().toString() : null)
+                .secretArn(auth.secretArn())
+                .clientPasswordAuthType(auth.clientPasswordAuthType() != null ? auth.clientPasswordAuthType().toString() : null)
                 .build();
     }
 
@@ -54,13 +55,14 @@ public class Utility {
             return userAuthConfigList;
         }
 
-        for(AuthFormat auth : model.getAuth()){
-            UserAuthConfig uac = new UserAuthConfig()
-                    .withAuthScheme(auth.getAuthScheme())
-                    .withDescription(auth.getDescription())
-                    .withIAMAuth(auth.getIAMAuth())
-                    .withSecretArn(auth.getSecretArn())
-                    .withClientPasswordAuthType(auth.getClientPasswordAuthType());
+        for (AuthFormat auth : model.getAuth()) {
+            UserAuthConfig uac = UserAuthConfig.builder()
+                    .authScheme(auth.getAuthScheme())
+                    .description(auth.getDescription())
+                    .iamAuth(auth.getIAMAuth())
+                    .secretArn(auth.getSecretArn())
+                    .clientPasswordAuthType(auth.getClientPasswordAuthType())
+                    .build();
             userAuthConfigList.add(uac);
         }
         return userAuthConfigList;

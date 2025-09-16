@@ -18,17 +18,15 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.amazonaws.AmazonWebServiceResult;
-import com.amazonaws.ResponseMetadata;
-import com.amazonaws.services.rds.model.ConnectionPoolConfigurationInfo;
-import com.amazonaws.services.rds.model.DBProxyTarget;
-import com.amazonaws.services.rds.model.DBProxyTargetGroup;
-import com.amazonaws.services.rds.model.DescribeDBProxyTargetGroupsRequest;
-import com.amazonaws.services.rds.model.DescribeDBProxyTargetGroupsResult;
-import com.amazonaws.services.rds.model.DescribeDBProxyTargetsRequest;
-import com.amazonaws.services.rds.model.DescribeDBProxyTargetsResult;
-import com.amazonaws.services.rds.model.TargetType;
 import com.google.common.collect.ImmutableList;
+import software.amazon.awssdk.services.rds.model.ConnectionPoolConfigurationInfo;
+import software.amazon.awssdk.services.rds.model.DBProxyTarget;
+import software.amazon.awssdk.services.rds.model.DBProxyTargetGroup;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyTargetGroupsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyTargetGroupsResponse;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyTargetsRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbProxyTargetsResponse;
+import software.amazon.awssdk.services.rds.model.TargetType;
 import software.amazon.cloudformation.exceptions.CfnNotFoundException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Logger;
@@ -57,27 +55,30 @@ public class ReadHandlerTest {
     @Test
     public void handleRequest_SimpleSuccess() {
         final ReadHandler handler = new ReadHandler();
-        ConnectionPoolConfigurationInfo connectionPoolConfigurationInfo = new ConnectionPoolConfigurationInfo();
+        ConnectionPoolConfigurationInfo connectionPoolConfigurationInfo = ConnectionPoolConfigurationInfo.builder().build();
 
-        DBProxyTargetGroup dbProxyTargetGroup1 = new DBProxyTargetGroup().withConnectionPoolConfig(connectionPoolConfigurationInfo)
-                                                                         .withDBProxyName(PROXY_NAME)
-                                                                         .withTargetGroupName(DEFAULT_NAME);
+        DBProxyTargetGroup dbProxyTargetGroup1 = DBProxyTargetGroup.builder().connectionPoolConfig(connectionPoolConfigurationInfo)
+                                                                         .dbProxyName(PROXY_NAME)
+                                                                         .targetGroupName(DEFAULT_NAME)
+                .build();
         final List<DBProxyTargetGroup> existingProxies = ImmutableList.of(dbProxyTargetGroup1);
 
 
-        DescribeDBProxyTargetGroupsRequest describeRequest = new DescribeDBProxyTargetGroupsRequest()
-                                                                     .withDBProxyName(PROXY_NAME)
-                                                                     .withTargetGroupName(DEFAULT_NAME);
-        doReturn(new DescribeDBProxyTargetGroupsResult().withTargetGroups(existingProxies))
+        DescribeDbProxyTargetGroupsRequest describeRequest = DescribeDbProxyTargetGroupsRequest.builder()
+                                                                     .dbProxyName(PROXY_NAME)
+                                                                     .targetGroupName(DEFAULT_NAME)
+                .build();
+        doReturn(DescribeDbProxyTargetGroupsResponse.builder().targetGroups(existingProxies).build())
                 .when(proxy)
-                .injectCredentialsAndInvoke(eq(describeRequest),
-                        ArgumentMatchers.<Function<DescribeDBProxyTargetGroupsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+                .injectCredentialsAndInvokeV2(eq(describeRequest),
+                        ArgumentMatchers.<Function<DescribeDbProxyTargetGroupsRequest, DescribeDbProxyTargetGroupsResponse>>any());
 
-        DescribeDBProxyTargetsRequest targetRequest = new DescribeDBProxyTargetsRequest()
-                                                              .withDBProxyName(PROXY_NAME)
-                                                              .withTargetGroupName(DEFAULT_NAME);
-        doReturn(new DescribeDBProxyTargetsResult()).when(proxy).injectCredentialsAndInvoke(eq(targetRequest),
-                ArgumentMatchers.<Function<DescribeDBProxyTargetsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        DescribeDbProxyTargetsRequest targetRequest = DescribeDbProxyTargetsRequest.builder()
+                                                              .dbProxyName(PROXY_NAME)
+                                                              .targetGroupName(DEFAULT_NAME)
+                .build();
+        doReturn(DescribeDbProxyTargetsResponse.builder().build()).when(proxy).injectCredentialsAndInvokeV2(eq(targetRequest),
+                ArgumentMatchers.<Function<DescribeDbProxyTargetsRequest, DescribeDbProxyTargetsResponse>>any());
 
         final ResourceModel model = ResourceModel.builder().dBProxyName(PROXY_NAME).targetGroupName(DEFAULT_NAME).build();
 
@@ -103,30 +104,34 @@ public class ReadHandlerTest {
     @Test
     public void handleRequest_WithRegisteredCluster() {
         final ReadHandler handler = new ReadHandler();
-        ConnectionPoolConfigurationInfo connectionPoolConfigurationInfo = new ConnectionPoolConfigurationInfo();
+        ConnectionPoolConfigurationInfo connectionPoolConfigurationInfo = ConnectionPoolConfigurationInfo.builder().build();
 
-        DBProxyTargetGroup dbProxyTargetGroup1 = new DBProxyTargetGroup().withConnectionPoolConfig(connectionPoolConfigurationInfo)
-                                                                         .withDBProxyName(PROXY_NAME)
-                                                                         .withTargetGroupName(DEFAULT_NAME);
+        DBProxyTargetGroup dbProxyTargetGroup1 = DBProxyTargetGroup.builder().connectionPoolConfig(connectionPoolConfigurationInfo)
+                                                                         .dbProxyName(PROXY_NAME)
+                                                                         .targetGroupName(DEFAULT_NAME)
+                .build();
         final List<DBProxyTargetGroup> existingProxies = ImmutableList.of(dbProxyTargetGroup1);
 
 
-        DescribeDBProxyTargetGroupsRequest describeRequest = new DescribeDBProxyTargetGroupsRequest()
-                                                                     .withDBProxyName(PROXY_NAME)
-                                                                     .withTargetGroupName(DEFAULT_NAME);
-        doReturn(new DescribeDBProxyTargetGroupsResult().withTargetGroups(existingProxies))
+        DescribeDbProxyTargetGroupsRequest describeRequest = DescribeDbProxyTargetGroupsRequest.builder()
+                                                                     .dbProxyName(PROXY_NAME)
+                                                                     .targetGroupName(DEFAULT_NAME)
+                .build();
+        doReturn(DescribeDbProxyTargetGroupsResponse.builder().targetGroups(existingProxies).build())
                 .when(proxy)
-                .injectCredentialsAndInvoke(eq(describeRequest),
-                        ArgumentMatchers.<Function<DescribeDBProxyTargetGroupsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+                .injectCredentialsAndInvokeV2(eq(describeRequest),
+                        ArgumentMatchers.<Function<DescribeDbProxyTargetGroupsRequest, DescribeDbProxyTargetGroupsResponse>>any());
 
-        DescribeDBProxyTargetsRequest targetRequest = new DescribeDBProxyTargetsRequest()
-                                                                   .withDBProxyName(PROXY_NAME)
-                                                                   .withTargetGroupName(DEFAULT_NAME);
+        DescribeDbProxyTargetsRequest targetRequest = DescribeDbProxyTargetsRequest.builder()
+                                                                    .dbProxyName(PROXY_NAME)
+                                                                    .targetGroupName(DEFAULT_NAME)
+                                                                    .build();
         String clusterId = "clusterId";
-        doReturn(new DescribeDBProxyTargetsResult()
-                         .withTargets(new DBProxyTarget().withType(TargetType.TRACKED_CLUSTER).withRdsResourceId(clusterId),
-                                      new DBProxyTarget().withType(TargetType.RDS_INSTANCE).withRdsResourceId("instanceId")))
-                .when(proxy).injectCredentialsAndInvoke(eq(targetRequest), ArgumentMatchers.<Function<DescribeDBProxyTargetsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        doReturn(DescribeDbProxyTargetsResponse.builder()
+                         .targets(DBProxyTarget.builder().type(TargetType.TRACKED_CLUSTER).rdsResourceId(clusterId).build(),
+                                  DBProxyTarget.builder().type(TargetType.RDS_INSTANCE).rdsResourceId("instanceId").build())
+                .build())
+                .when(proxy).injectCredentialsAndInvokeV2(eq(targetRequest), ArgumentMatchers.<Function<DescribeDbProxyTargetsRequest, DescribeDbProxyTargetsResponse>>any());
 
         final ResourceModel model = ResourceModel.builder().dBProxyName(PROXY_NAME).targetGroupName(DEFAULT_NAME).build();
 
@@ -154,21 +159,24 @@ public class ReadHandlerTest {
     public void handleRequest_defaultName() {
         final ReadHandler handler = new ReadHandler();
 
-        ConnectionPoolConfigurationInfo connectionPoolConfigurationInfo = new ConnectionPoolConfigurationInfo();
+        ConnectionPoolConfigurationInfo connectionPoolConfigurationInfo = ConnectionPoolConfigurationInfo.builder().build();
 
-        DBProxyTargetGroup dbProxyTargetGroup1 = new DBProxyTargetGroup().withConnectionPoolConfig(connectionPoolConfigurationInfo)
-                                                                         .withDBProxyName(PROXY_NAME)
-                                                                         .withTargetGroupName(DEFAULT_NAME);
+        DBProxyTargetGroup dbProxyTargetGroup1 = DBProxyTargetGroup.builder()
+                .connectionPoolConfig(connectionPoolConfigurationInfo)
+                .dbProxyName(PROXY_NAME)
+                .targetGroupName(DEFAULT_NAME)
+                .build();
         final List<DBProxyTargetGroup> existingProxies = ImmutableList.of(dbProxyTargetGroup1);
 
 
-        DescribeDBProxyTargetGroupsRequest describeRequest = new DescribeDBProxyTargetGroupsRequest()
-                                                                     .withDBProxyName(PROXY_NAME)
-                                                                     .withTargetGroupName(DEFAULT_NAME);
-        doReturn(new DescribeDBProxyTargetGroupsResult().withTargetGroups(existingProxies))
+        DescribeDbProxyTargetGroupsRequest describeRequest = DescribeDbProxyTargetGroupsRequest.builder()
+                                                                     .dbProxyName(PROXY_NAME)
+                                                                     .targetGroupName(DEFAULT_NAME)
+                .build();
+        doReturn(DescribeDbProxyTargetGroupsResponse.builder().targetGroups(existingProxies).build())
                 .when(proxy)
-                .injectCredentialsAndInvoke(eq(describeRequest),
-                        ArgumentMatchers.<Function<DescribeDBProxyTargetGroupsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+                .injectCredentialsAndInvokeV2(eq(describeRequest),
+                        ArgumentMatchers.<Function<DescribeDbProxyTargetGroupsRequest, DescribeDbProxyTargetGroupsResponse>>any());
 
 
         final ResourceModel model = ResourceModel.builder().dBProxyName(PROXY_NAME).build();
@@ -194,9 +202,9 @@ public class ReadHandlerTest {
     public void handleRequest_ResourceNotFound() {
         final ReadHandler handler = new ReadHandler();
 
-        doReturn(new DescribeDBProxyTargetGroupsResult())
-                .when(proxy).injectCredentialsAndInvoke(any(DescribeDBProxyTargetGroupsRequest.class),
-                ArgumentMatchers.<Function<DescribeDBProxyTargetGroupsRequest, AmazonWebServiceResult<ResponseMetadata>>>any());
+        doReturn(DescribeDbProxyTargetGroupsResponse.builder().build())
+                .when(proxy).injectCredentialsAndInvokeV2(any(DescribeDbProxyTargetGroupsRequest.class),
+                ArgumentMatchers.<Function<DescribeDbProxyTargetGroupsRequest, DescribeDbProxyTargetGroupsResponse>>any());
 
         final ResourceModel model = ResourceModel.builder().dBProxyName("proxy1").build();
 

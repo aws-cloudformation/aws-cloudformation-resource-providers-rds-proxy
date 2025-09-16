@@ -3,22 +3,23 @@ package software.amazon.rds.dbproxyendpoint;
 import java.util.HashSet;
 import java.util.List;
 
-import com.amazonaws.services.rds.model.DBProxyEndpoint;
+import software.amazon.awssdk.services.rds.model.DBProxyEndpoint;
+
 
 public class Utility {
 
     public static ResourceModel resultToModel(DBProxyEndpoint proxyEndpoint){
         return ResourceModel
                 .builder()
-                .dBProxyEndpointArn(proxyEndpoint.getDBProxyEndpointArn())
-                .dBProxyEndpointName(proxyEndpoint.getDBProxyEndpointName())
-                .dBProxyName(proxyEndpoint.getDBProxyName())
-                .vpcId(proxyEndpoint.getVpcId())
-                .vpcSecurityGroupIds(proxyEndpoint.getVpcSecurityGroupIds())
-                .vpcSubnetIds(proxyEndpoint.getVpcSubnetIds())
-                .endpoint(proxyEndpoint.getEndpoint())
-                .targetRole(proxyEndpoint.getTargetRole())
-                .isDefault(proxyEndpoint.getIsDefault())
+                .dBProxyEndpointArn(proxyEndpoint.dbProxyEndpointArn())
+                .dBProxyEndpointName(proxyEndpoint.dbProxyEndpointName())
+                .dBProxyName(proxyEndpoint.dbProxyName())
+                .vpcId(proxyEndpoint.vpcId())
+                .vpcSecurityGroupIds(proxyEndpoint.vpcSecurityGroupIds())
+                .vpcSubnetIds(proxyEndpoint.vpcSubnetIds())
+                .endpoint(proxyEndpoint.endpoint())
+                .targetRole(proxyEndpoint.targetRole() != null ? proxyEndpoint.targetRole().toString() : null)
+                .isDefault(proxyEndpoint.isDefault())
                 .build();
     }
 

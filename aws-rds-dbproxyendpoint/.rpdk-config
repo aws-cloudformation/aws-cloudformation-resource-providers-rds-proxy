@@ -2,7 +2,7 @@
     "artifact_type": "RESOURCE",
     "typeName": "AWS::RDS::DBProxyEndpoint",
     "language": "java",
-    "runtime": "java8",
+    "runtime": "java11",
     "entrypoint": "software.amazon.rds.dbproxyendpoint.HandlerWrapper::handleRequest",
     "testEntrypoint": "software.amazon.rds.dbproxyendpoint.HandlerWrapper::testEntrypoint",
     "settings": {
